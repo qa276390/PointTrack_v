@@ -50,7 +50,8 @@ def leave_needed(inst_paths, class_id):
     return new_paths
 
 
-TrackElement = namedtuple("TrackElement", ["t", "track_id", "class_id", "mask", "embed", "points"])
+#TrackElement = namedtuple("TrackElement", ["t", "track_id", "class_id", "mask", "embed", "points" ])
+TrackElement = namedtuple("TrackElement", ["t", "track_id", "class_id", "mask", "embed", "points" , "embed_center", "n_tracks", "ttl"])
 munkres_obj = munkres.Munkres()
 '''
 p = subprocess.run(["python3", "eval.py",
@@ -83,17 +84,30 @@ def export_tracking_result_in_kitti_format(tag, tracks, add_masks, model_str, ou
                         assert False, ("unknown class id", track.class_)
                     print(t, track.track_id, class_str, -1, -1, -1, *track.box, -1, -1, -1, -1, -1, -1, -1, track.score, file=f)
 
-
+"""
 def newElem(t, track_id, embed, mask, points=None, class_id=1):
     mask_np = np.asfortranarray(mask.astype(np.uint8))
     mask_coco = maskUtils.encode(mask_np)
     return TrackElement(t=t, mask=mask_coco, class_id=class_id, track_id=track_id, embed=embed, points=points)
+"""
+def newElem(t, track_id, embed, mask, points=None, class_id=1, embed_centered=None, n_tracks=0, ttl=3):
+    n_tracks += 1
+    if(embed_centered is not None):
+        embed_center = (embed_centered * (n_tracks - 1)/n_tracks) + (embed * 1/n_tracks)
+    else:
+        embed_center = embed
+
+    mask_np = np.asfortranarray(mask.astype(np.uint8))
+    mask_coco = maskUtils.encode(mask_np)
+    return TrackElement(t=t, mask=mask_coco, class_id=class_id, track_id=track_id, embed=embed, points=points, embed_center=embed_center, n_tracks=n_tracks, ttl=ttl)
+def Elem_execttl(el):
+    return TrackElement(t=el.t, mask=el.mask, class_id=el.class_id, track_id=el.track_id, embed=el.embed, points=el.points, embed_center=el.embed_center, n_tracks=el.n_tracks, ttl=el.ttl-1)
 
 
 class TrackHelper(object):
 
     def __init__(self, save_dir, margin, t_car=0.8165986526897969, t_person=0.47985540892434836, alive_car=5, alive_person=30, car=True,
-                 mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False):
+                 mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False, use_ttl=False):
         # mask_iou_scale_car 0.7~0.8
         # t_car 0.7~1.0 or 6.0
         self.margin = margin
@@ -104,6 +118,8 @@ class TrackHelper(object):
         self.next_inst_id = None
         self.mask_iou = mask_iou
         self.cosine = cosine
+        #self.active_track_ttl = []
+        self.use_ttl = use_ttl
         if car:
             self.reid_euclidean_scale = 1.0090931467228708
             self.reid_euclidean_offset = 8.810218833503743
@@ -166,11 +182,21 @@ class TrackHelper(object):
                 current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id)
                 self.all_tracks.append(current_inst)
                 self.active_tracks.append(current_inst)
+                #self.active_track_ttl.append(3) # 3 frames to live @vtsai01
                 self.next_inst_id += 1
             return
+        else:
+            if self.use_ttl: # using ttl @vtsai01 
+                for ind, el in enumerate(self.active_tracks):
+                    #el.ttl -= 1 # x - 1 frames to live @vtsai01
+                    self.active_tracks[ind] = Elem_execttl(el)
+
         # compare inst by inst.
         # only compare with previous embeds, not including embeds of this frame
-        last_reids = np.concatenate([el.embed[np.newaxis] for el in self.active_tracks], axis=0)
+        if self.use_ttl:
+            last_reids = np.concatenate([ el.embed[np.newaxis] if(el.ttl>0) else el.embed_center[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
+        else:
+            last_reids = np.concatenate([el.embed[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
         curr_reids = embeds
         asso_sim = np.zeros((n, len(self.active_tracks)))
 
@@ -185,20 +211,23 @@ class TrackHelper(object):
             mask_ious = maskUtils.iou(masks_t, masks_tm1, [False] * len(masks_tm1))
             asso_sim += self.mask_iou_scale * mask_ious
 
-        cost_matrix = munkres.make_cost_matrix(asso_sim)
+        cost_matrix = munkres.make_cost_matrix(asso_sim) # Hungarian Algorithm
         disallow_indices = np.argwhere(asso_sim <= self.association_threshold)
         for ind in disallow_indices:
             cost_matrix[ind[0]][ind[1]] = 1e9
-        indexes = munkres_obj.compute(cost_matrix)
+        indexes = munkres_obj.compute(cost_matrix) # Hungarian Algorithm
         for row, column in indexes:
             value = cost_matrix[row][column]
             if value == 1e9:
                 continue
             embed = embeds[row]
             mask = masks[row]
-            current_inst = newElem(frameCount, self.active_tracks[column].track_id, embed, mask, class_id=self.class_id)
+            #current_inst = newElem(frameCount, self.active_tracks[column].track_id, embed, mask, class_id=self.class_id)
+            current_inst = newElem(frameCount, self.active_tracks[column].track_id, embed, mask, \
+                        class_id=self.class_id, embed_centered=self.active_tracks[column].embed_center, n_tracks=self.active_tracks[column].n_tracks) # @vtsai01
             self.all_tracks.append(current_inst)
             self.active_tracks[column] = current_inst
+            #self.active_track_ttl[column] = 3 # 3 frames to live @vtsai01 
             detections_assigned[row] = True
 
         # new inst for unassigned
@@ -210,5 +239,6 @@ class TrackHelper(object):
                 current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id)
                 self.all_tracks.append(current_inst)
                 self.active_tracks.append(current_inst)
+                #self.active_track_ttl.append(3) # 3 frames to live @vtsai01
                 self.next_inst_id += 1
         return

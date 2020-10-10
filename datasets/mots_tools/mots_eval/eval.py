@@ -441,6 +441,7 @@ def load_sequences(path, seqmap):
         elif os.path.exists(seq_path_txt):
             objects_per_frame_per_sequence[seq] = load_txt(seq_path_txt)
         else:
+            print("Can't find data in directory " + path)
             assert False, "Can't find data in directory " + path
 
     return objects_per_frame_per_sequence

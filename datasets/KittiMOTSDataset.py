@@ -195,12 +195,14 @@ class MOTSTrackCarsValOffset(Dataset):
             ids = self.SEQ_IDS_VAL
             timestamps = self.TIMESTEPS_PER_SEQ
             self.image_root = os.path.join(kittiRoot, 'images')
-            self.mots_root = os.path.join(systemRoot, 'SpatialEmbeddings/car_SE_val_prediction')
+            #self.mots_root = os.path.join(systemRoot, 'SpatialEmbeddings/car_SE_val_prediction')
+            self.mots_root = os.path.join(rootDir, 'car_SE_val_prediction') # modify by vtsai01
         else:
             ids = self.SEQ_IDS_TEST
             timestamps = self.TIMESTEPS_PER_SEQ_TEST
             self.image_root = os.path.join(kittiRoot, 'testing/image_02/')
-            self.mots_root = os.path.join(systemRoot, 'SpatialEmbeddings/car_SE_test_prediction')
+            #self.mots_root = os.path.join(systemRoot, 'SpatialEmbeddings/car_SE_test_prediction')
+            self.mots_root = os.path.join(rootDir, 'car_SE_val_prediction') # modify by vtsai01
 
         print('use ', self.mots_root)
         self.batch_num = 2

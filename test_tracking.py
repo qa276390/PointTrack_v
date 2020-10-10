@@ -43,6 +43,7 @@ device = torch.device("cuda:0" if args['cuda'] else "cpu")
 # dataloader
 dataset = get_dataset(
     args['dataset']['name'], args['dataset']['kwargs'])
+print('dataset',  args['dataset']['name'],  args['dataset']['kwargs'])
 dataset_it = torch.utils.data.DataLoader(
     dataset, batch_size=1, shuffle=False, drop_last=False, num_workers=4, pin_memory=True if args['cuda'] else False)
 
@@ -79,13 +80,15 @@ def prepare_img(image):
 dColors = [(128, 0, 0), (170, 110, 40), (128, 128, 0), (0, 128, 128), (0, 0, 128), (230, 25, 75), (245, 130, 48)
         , (255, 225, 25), (210, 245, 60), (60, 180, 75), (70, 240, 240), (0, 130, 200), (145, 30, 180), (240, 50, 230)
         , (128, 128, 128), (250, 190, 190), (255, 215, 180), (255, 250, 200), (170, 255, 195), (230, 190, 255), (255, 255, 255)]
-
+print('args[\'save_dir\']', args['save_dir'])
 trackHelper = TrackHelper(args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
-                          mask_iou=True)
+                          mask_iou=True, use_ttl=True)
+print("+"*10)
 with torch.no_grad():
+    print(len(dataset_it))
 
     for sample in tqdm(dataset_it):
-        subf, frameCount = sample['name'][0][:-4].split('/')[-2:]
+        subf, frameCount = sample['name'][0][:-4].split('/')[-2:] # what is frameCount? #vtsai01
         frameCount = int(float(frameCount))
 
         # MOTS forward with tracking
@@ -110,5 +113,5 @@ if 'run_eval' in args.keys() and args['run_eval']:
     save_val_dir = args['save_dir'].split('/')[1]
     p = subprocess.run([pythonPath, "-u", "eval.py",
                         os.path.join(rootDir, save_val_dir), kittiRoot + "instances", "val.seqmap"],
-                                   stdout=subprocess.PIPE, cwd=rootDir + "datasets/mots_tools/mots_eval")
+                                   stdout=subprocess.PIPE, cwd=rootDir + "/datasets/mots_tools/mots_eval")
     print(p.stdout.decode("utf-8"))
