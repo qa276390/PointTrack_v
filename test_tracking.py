@@ -57,7 +57,7 @@ if os.path.exists(args['checkpoint_path']):
     model.load_state_dict(state['model_state_dict'], strict=True)
     print('Load dict from %s' % args['checkpoint_path'])
 else:
-    assert(False, 'checkpoint_path {} does not exist!'.format(args['checkpoint_path']))
+    #assert(False, 'checkpoint_path {} does not exist!'.format(args['checkpoint_path']))
     print(args['checkpoint_path'])
 
 model.eval()
@@ -82,7 +82,7 @@ dColors = [(128, 0, 0), (170, 110, 40), (128, 128, 0), (0, 128, 128), (0, 0, 128
         , (128, 128, 128), (250, 190, 190), (255, 215, 180), (255, 250, 200), (170, 255, 195), (230, 190, 255), (255, 255, 255)]
 print('args[\'save_dir\']', args['save_dir'])
 trackHelper = TrackHelper(args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
-                          mask_iou=True, use_ttl=True)
+                          mask_iou=True, use_ttl=True, ttl=2) # use_ttl is optional @vtsai01
 print("+"*10)
 with torch.no_grad():
     print(len(dataset_it))

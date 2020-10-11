@@ -13,6 +13,7 @@ from scipy.spatial.distance import cdist
 from config import *
 from PIL import Image
 import multiprocessing
+from tqdm import tqdm
 
 
 def readInstCar(path, class_id=26):
@@ -53,14 +54,14 @@ def leave_needed(inst_paths, class_id):
 #TrackElement = namedtuple("TrackElement", ["t", "track_id", "class_id", "mask", "embed", "points" ])
 TrackElement = namedtuple("TrackElement", ["t", "track_id", "class_id", "mask", "embed", "points" , "embed_center", "n_tracks", "ttl"])
 munkres_obj = munkres.Munkres()
-'''
+"""
 p = subprocess.run(["python3", "eval.py",
                                 "/home/voigtlaender/vision/savitar2/forwarded/" + self.config.string(
                                     "model") + "/tracking_data/",
                                 "/globalwork/voigtlaender/data/KITTI_MOTS/train/instances/", "val.seqmap"],
                                stdout=subprocess.PIPE, cwd="/home/voigtlaender/vision/mots_eval/")
             print(p.stdout.decode("utf-8"), file=log.v1)
-'''
+"""
 
 def export_tracking_result_in_kitti_format(tag, tracks, add_masks, model_str, out_folder="", start_time_at_1=False):
     if out_folder == "":
@@ -90,10 +91,11 @@ def newElem(t, track_id, embed, mask, points=None, class_id=1):
     mask_coco = maskUtils.encode(mask_np)
     return TrackElement(t=t, mask=mask_coco, class_id=class_id, track_id=track_id, embed=embed, points=points)
 """
-def newElem(t, track_id, embed, mask, points=None, class_id=1, embed_centered=None, n_tracks=0, ttl=3):
-    n_tracks += 1
+def newElem(t, track_id, embed, mask, points=None, class_id=1, embed_centered=None, n_tracks=1, ttl=4):
+    #n_tracks += 1
     if(embed_centered is not None):
-        embed_center = (embed_centered * (n_tracks - 1)/n_tracks) + (embed * 1/n_tracks)
+        embed_center = (embed_centered * 0.5) + (embed * 0.5)
+        #embed_center = (embed_centered * (n_tracks - 1)/n_tracks) + (embed * 1/n_tracks)
     else:
         embed_center = embed
 
@@ -107,7 +109,7 @@ def Elem_execttl(el):
 class TrackHelper(object):
 
     def __init__(self, save_dir, margin, t_car=0.8165986526897969, t_person=0.47985540892434836, alive_car=5, alive_person=30, car=True,
-                 mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False, use_ttl=False):
+                 mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False, use_ttl=False, ttl=4):
         # mask_iou_scale_car 0.7~0.8
         # t_car 0.7~1.0 or 6.0
         self.margin = margin
@@ -120,6 +122,7 @@ class TrackHelper(object):
         self.cosine = cosine
         #self.active_track_ttl = []
         self.use_ttl = use_ttl
+        self.init_ttl = ttl
         if car:
             self.reid_euclidean_scale = 1.0090931467228708
             self.reid_euclidean_offset = 8.810218833503743
@@ -134,7 +137,9 @@ class TrackHelper(object):
             self.keep_alive = alive_person
             self.class_id = 2
             self.mask_iou_scale = mask_iou_scale_person # 0.54/1.3437965549876354
-        print('params:', 'car' if car else 'pedestrian', self.keep_alive, self.association_threshold, 'mask_iou: %s' % self.mask_iou_scale if self.mask_iou else 'no mask iou')
+        print('params:', 'car' if car else 'pedestrian', self.keep_alive, self.association_threshold,\
+            'mask_iou: %s' % self.mask_iou_scale if self.mask_iou else 'no mask iou', \
+            'init_ttl: %s' % self.init_ttl if self.use_ttl else 'not using ttl' )
 
     def reset(self, subfolder):
         self.all_tracks, self.active_tracks = [], []
@@ -142,7 +147,7 @@ class TrackHelper(object):
         self.current_video = subfolder
 
     def export_last_video(self):
-        print('Writing ', self.current_video)
+        tqdm.write('Writing '+ str(self.current_video))
         out_filename = os.path.join(self.save_dir, self.current_video + ".txt")
         with open(out_filename, "w") as f:
             for track in self.all_tracks:
@@ -179,7 +184,7 @@ class TrackHelper(object):
             for i in range(n):
                 embed = embeds[i]
                 mask = masks[i]
-                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id)
+                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl)
                 self.all_tracks.append(current_inst)
                 self.active_tracks.append(current_inst)
                 #self.active_track_ttl.append(3) # 3 frames to live @vtsai01
@@ -194,7 +199,17 @@ class TrackHelper(object):
         # compare inst by inst.
         # only compare with previous embeds, not including embeds of this frame
         if self.use_ttl:
-            last_reids = np.concatenate([ el.embed[np.newaxis] if(el.ttl>0) else el.embed_center[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
+            #last_reids = np.concatenate([el.embed[np.newaxis] if(el.ttl>0) else el.embed_center[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
+            
+            reids_emb = []
+            for el in self.active_tracks:
+                if el.ttl > 0:
+                    reids_emb.append(el.embed[np.newaxis])
+                else:
+                    reids_emb.append(el.embed_center[np.newaxis])
+                    #tqdm.write('using center with diff:'+ str(cdist(el.embed[np.newaxis], el.embed_center[np.newaxis], "euclidean" if not self.cosine else 'cosine')[0]))
+            last_reids = np.concatenate(reids_emb, axis=0)
+            
         else:
             last_reids = np.concatenate([el.embed[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
         curr_reids = embeds
@@ -223,8 +238,8 @@ class TrackHelper(object):
             embed = embeds[row]
             mask = masks[row]
             #current_inst = newElem(frameCount, self.active_tracks[column].track_id, embed, mask, class_id=self.class_id)
-            current_inst = newElem(frameCount, self.active_tracks[column].track_id, embed, mask, \
-                        class_id=self.class_id, embed_centered=self.active_tracks[column].embed_center, n_tracks=self.active_tracks[column].n_tracks) # @vtsai01
+            current_inst = newElem(frameCount, self.active_tracks[column].track_id, embed, mask,  ttl=self.init_ttl, \
+                        class_id=self.class_id, embed_centered=self.active_tracks[column].embed_center, n_tracks=self.active_tracks[column].n_tracks+1) # @vtsai01
             self.all_tracks.append(current_inst)
             self.active_tracks[column] = current_inst
             #self.active_track_ttl[column] = 3 # 3 frames to live @vtsai01 
@@ -236,7 +251,7 @@ class TrackHelper(object):
             for i in detections_assigned_Inds:
                 embed = embeds[i]
                 mask = masks[i]
-                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id)
+                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl)
                 self.all_tracks.append(current_inst)
                 self.active_tracks.append(current_inst)
                 #self.active_track_ttl.append(3) # 3 frames to live @vtsai01
