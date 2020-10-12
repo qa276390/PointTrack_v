@@ -102,13 +102,13 @@ with torch.no_grad():
         base = base.replace(middle, str(int(float(middle))))
 
         im = sample['mot_image']
-        instances = sample['mot_instance'].squeeze(1)[0]
+        #instances = sample['mot_instance'].squeeze(1)[0]
         w, h = sample['im_shape'][0].item(), sample['im_shape'][1].item()
 
         output = model(im)
         im = im[:, :, :h, :w]
         output = output[:, :, :h, :w]
-        instances = instances[:h, :w]
+        #instances = instances[:h, :w]
         instance_map = cluster.cluster_mots_wo_points(output[0], threshold=args['threshold'],
                                                       min_pixel=args['min_pixel'],
                                                       with_uv=args['with_uv'], n_sigma=args["n_sigma"] if "n_sigma" in args.keys() else 1)

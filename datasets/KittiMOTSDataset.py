@@ -26,7 +26,7 @@ class MOTSTest(Dataset):
                               '0007': 215, '0014': 850, '0025': 176, '0027': 85, '0011': 774, '0010': 1176, '0006': 114,
                               '0002': 243}
 
-    def __init__(self, root_dir='./', type="train", class_id=26, size=None, transform=None, batch=False, batch_num=8):
+    def __init__(self, root_dir='./', mode="train", class_id=26, size=None, transform=None, batch=False, batch_num=8):
 
         print('Kitti Dataset created')
         self.batch = batch
@@ -80,12 +80,12 @@ class MOTSCarsVal(Dataset):
     SEQ_IDS_TRAIN = ["%04d" % idx for idx in [0, 1, 3, 4, 5, 9, 11, 12, 15, 17, 19, 20]]
     SEQ_IDS_VAL = ["%04d" % idx for idx in [2, 6, 7, 8, 10, 13, 14, 16, 18]]
 
-    def __init__(self, root_dir='./', type="train", class_id=26, size=None, transform=None, batch=False, batch_num=8):
+    def __init__(self, root_dir='./', mode="train", class_id=26, size=None, transform=None, batch=False, batch_num=8):
 
         print('Kitti Dataset created')
-        type = 'training' if type in 'training' else 'testing'
-        self.type = type
-        self.sequence = self.SEQ_IDS_TRAIN if type == 'training' else self.SEQ_IDS_VAL
+        mode = 'training' if mode in 'training' else 'testing'
+        self.mode = mode
+        self.sequence = self.SEQ_IDS_TRAIN if mode == 'training' else self.SEQ_IDS_VAL
         self.batch = batch
         self.batch_num = batch_num
 
@@ -182,15 +182,17 @@ class MOTSTrackCarsValOffset(Dataset):
                               '0007': 215, '0014': 850, '0025': 176, '0027': 85, '0011': 774, '0010': 1176, '0006': 114,
                               '0002': 243}
 
-    def __init__(self, root_dir='./', type="train", num_points=250, transform=None, random_select=False, az=False,
+    def __init__(self, root_dir='./', mode="train", num_points=250, transform=None, random_select=False, az=False,
                  border=False, env=False, gt=True, box=False, test=False, category=False, ex=0.2):
 
         print('MOTS Dataset created')
-        type = 'training' if type in 'training' else 'testing'
-        self.type = type
-        assert self.type == 'testing'
+        mode = 'training' if mode in 'training' else 'testing'
+        self.mode = mode
+        assert self.mode == 'testing'
 
         self.transform = transform
+        test = True if mode == 'testing' else False
+
         if not test:
             ids = self.SEQ_IDS_VAL
             timestamps = self.TIMESTEPS_PER_SEQ
@@ -198,11 +200,12 @@ class MOTSTrackCarsValOffset(Dataset):
             #self.mots_root = os.path.join(systemRoot, 'SpatialEmbeddings/car_SE_val_prediction')
             self.mots_root = os.path.join(rootDir, 'car_SE_val_prediction') # modify by vtsai01
         else:
+            print('testing')
             ids = self.SEQ_IDS_TEST
             timestamps = self.TIMESTEPS_PER_SEQ_TEST
-            self.image_root = os.path.join(kittiRoot, 'testing/image_02/')
+            self.image_root = os.path.join(kittiRoot, 'testing/image_02')
             #self.mots_root = os.path.join(systemRoot, 'SpatialEmbeddings/car_SE_test_prediction')
-            self.mots_root = os.path.join(rootDir, 'car_SE_val_prediction') # modify by vtsai01
+            self.mots_root = os.path.join(rootDir, 'car_SE_test_prediction') # modify by vtsai01
 
         print('use ', self.mots_root)
         self.batch_num = 2
@@ -263,7 +266,8 @@ class MOTSTrackCarsValOffset(Dataset):
         subf, frameCount = os.path.basename(path)[:-4].split('_')
         imgPath = os.path.join(self.image_root, subf, '%06d.png' % int(float(frameCount)))
         img = cv2.imread(imgPath)
-
+        if(img is None):
+            print('img is None', imgPath)
         sample = {}
         sample['name'] = imgPath
         sample['masks'] = []
@@ -336,16 +340,16 @@ class MOTSTrackCarsTrain(Dataset):
                          "0007": 800, "0008": 390, "0009": 803, "0010": 294, "0011": 373, "0012": 78, "0013": 340,
                          "0014": 106, "0015": 376, "0016": 209, "0017": 145, "0018": 339, "0019": 1059, "0020": 837}
 
-    def __init__(self, root_dir='./', type="train", num_points=250, transform=None, random_select=False, batch_num=8,
+    def __init__(self, root_dir='./', mode="train", num_points=250, transform=None, random_select=False, batch_num=8,
                  shift=False, size=3000, sample_num=30, nearby=1, trainval=False, category=False):
         print('MOTS Dataset created')
-        type = 'training' if type in 'training' else 'testing'
+        mode = 'training' if mode in 'training' else 'testing'
         if trainval:
             self.squence = self.SEQ_IDS_TRAIN + self.SEQ_IDS_VAL
             print("train with training and val set")
         else:
-            self.squence = self.SEQ_IDS_TRAIN if type == 'training' else self.SEQ_IDS_VAL
-        self.type = type
+            self.squence = self.SEQ_IDS_TRAIN if mode == 'training' else self.SEQ_IDS_VAL
+        self.mode = mode
 
         self.transform = transform
         db_dir = kittiRoot + 'ImgTrackEnvDB/'
@@ -509,18 +513,18 @@ class MOTSCars(Dataset):
                          "0007": 800, "0008": 390, "0009": 803, "0010": 294, "0011": 373, "0012": 78, "0013": 340,
                          "0014": 106, "0015": 376, "0016": 209, "0017": 145, "0018": 339, "0019": 1059, "0020": 837}
 
-    def __init__(self, root_dir='./', type="train", size=None, transform=None, kins=True, kins_only=False):
+    def __init__(self, root_dir='./', mode="train", size=None, transform=None, kins=True, kins_only=False):
 
         print('Kitti Dataset created')
         self.class_id = 26
-        self.type = type
+        self.mode = mode
 
-        if type == 'crop':
+        if mode == 'crop':
             self.image_list = make_dataset(os.path.join(kittiRoot,'crop_KINS', 'images'), suffix='.png')
             self.instance_list = [el.replace('images', 'instances') for el in self.image_list]
         else:
-            type = 'training' if type in 'training' else 'testing'
-            if kins and type == 'training':
+            mode = 'training' if mode in 'training' else 'testing'
+            if kins and mode == 'training':
                 self.image_index = self._load_image_set_index_new('training') + self._load_image_set_index_new('testing')
                 self.clean_kins_inst_file = os.path.join(root_dir, 'KINSCarValid.pkl')
                 if not os.path.isfile(self.clean_kins_inst_file):
@@ -540,7 +544,7 @@ class MOTSCars(Dataset):
                 self.mots_image_root = os.path.join(kittiRoot, 'images')
                 assert os.path.isfile(os.path.join(kittiRoot, 'motsCarsTrain.pkl'))
 
-                if type == 'training':
+                if mode == 'training':
                     self.mots_persons = load_pickle(os.path.join(kittiRoot, 'motsCarsTrain.pkl'))
                     self.mots_instance_list = [os.path.join(self.mots_instance_root, el) for el in self.mots_persons]
                     self.mots_image_list = [el.replace('instances', 'images') for el in self.mots_instance_list]
@@ -556,8 +560,8 @@ class MOTSCars(Dataset):
         self.size = size
         self.transform = transform
 
-    def _load_image_set_index_new(self, type):
-        if type == 'training':
+    def _load_image_set_index_new(self, mode):
+        if mode == 'training':
             train_set_file = open(rootDir + 'datasets/splits/train.txt', 'r')
             image_index = train_set_file.read().split('\n')
         else:
@@ -570,7 +574,7 @@ class MOTSCars(Dataset):
         return self.real_size if self.size is None else self.size
 
     def get_data_from_kins(self, index):
-        if self.type == 'crop':
+        if self.mode == 'crop':
             index = random.randint(0, self.real_size - 1)
         sample = {}
         image = Image.open(self.image_list[index])
@@ -600,7 +604,7 @@ class MOTSCars(Dataset):
                 pass
 
     def decode_instance(self, pic, path):
-        if self.type == 'crop':
+        if self.mode == 'crop':
             class_id = 1 if 'MOTS' in path else 26
         else:
             class_id = 26 if 'KINS' in path else 1
@@ -614,7 +618,7 @@ class MOTSCars(Dataset):
             (pic.shape[0], pic.shape[1]), dtype=np.uint8)
 
         mask = np.logical_and(pic >= class_id * 1000, pic < (class_id + 1) * 1000)
-        if self.type=='crop':
+        if self.mode=='crop':
             assert mask.sum() > 0
         if mask.sum() > 0:
             ids, _, _ = relabel_sequential(pic[mask])
