@@ -199,13 +199,13 @@ class Resize(T.Resize):
 
 class ToTensor(object):
 
-    def __init__(self, keys=[], type="float"):
+    def __init__(self, keys=[], mode="float"):
 
-        if isinstance(type, collections.Iterable):
-            assert(len(keys) == len(type))
+        if isinstance(mode, collections.Iterable):
+            assert(len(keys) == len(mode))
 
         self.keys = keys
-        self.type = type
+        self.mode = mode
 
     def __call__(self, sample):
 
@@ -215,14 +215,14 @@ class ToTensor(object):
 
             sample[k] = F.to_tensor(sample[k])
 
-            t = self.type
+            t = self.mode
             if isinstance(t, collections.Iterable):
                 t = t[idx]
 
             if t == torch.ByteTensor or t == torch.LongTensor:
                 sample[k] = sample[k]*255
 
-            sample[k] = sample[k].type(t)
+            sample[k] = sample[k].mode(t)
 
         return sample
 
