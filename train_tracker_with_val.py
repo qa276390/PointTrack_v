@@ -118,12 +118,13 @@ def train(epoch):
     for param_group in optimizer.param_groups:
         print('learning rate: {}'.format(param_group['lr']))
 
+    print('lets')
     for i, sample in enumerate(tqdm(train_dataset_it)):
-
         points = sample['points']
         xyxys = sample['xyxys']
         labels = sample['labels']
-        emb_loss = model(points, labels, xyxys)
+        fstamps = sample['framestamp']
+        emb_loss = model(points, labels, xyxys, fstamps)
 
         loss = emb_loss.mean()
         if loss.item() > 0:
@@ -133,6 +134,10 @@ def train(epoch):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        
+        if i == 1:
+            print(sample.keys())
+            print('='*100)
 
     return loss_meter.avg, loss_emb_meter.avg
 

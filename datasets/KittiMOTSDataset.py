@@ -520,7 +520,7 @@ class MOTSTrackCarsTrainTransformer(Dataset):
 
     def __init__(self, root_dir='./', mode="train", num_points=250, transform=None, random_select=False, batch_num=8,
                  shift=False, size=3000, sample_num=30, nearby=1, trainval=False, category=False):
-        print('MOTS Dataset created')
+        print('MOTSTrackCarsTrainTransformer Dataset created')
         mode = 'training' if mode in 'training' else 'testing'
         if trainval:
             self.squence = self.SEQ_IDS_TRAIN + self.SEQ_IDS_VAL
@@ -598,19 +598,20 @@ class MOTSTrackCarsTrainTransformer(Dataset):
         sample['envs'] = []
         sample['xyxys'] = []
         sample['framestamp'] = [] # store framestamp
+        #print('len(pickles)', len(pickles))
         for pind, pi in enumerate(pickles):
            
             inst_id = pind + 1
             inst_length = len(pi)
-            if inst_length > 3:
-                t1 = random.choice(range(1, inst_length - 1))
-                nearby = random.choice(range(1, self.nearby+1))
-                t0, t2, t3 = max(0, t1 - nearby), min(inst_length - 1, t1 + nearby), min(inst_length - 1, t1 + nearby + 1)
-                pis = [pi[t0], pi[t1], pi[t2], pi[t3]]
-                fstamp = [] 
-            else:
-                start, end = 0, 2
-                pis = pi[start:end + 1]
+            #if inst_length > 3:
+            t1 = random.choice(range(1, inst_length - 1))
+            nearby = random.choice(range(1, self.nearby+1))
+            t0, t2, t3 = max(0, t1 - nearby), min(inst_length - 1, t1 + nearby), min(inst_length - 1, t1 + nearby + 1)
+            pis = [pi[t0], pi[t1], pi[t2], pi[t3]]
+            #else:
+            #    start, end = 0, 2
+            #    pis = pi[start:end + 1]
+            #print('pis', len(pis))
             for ii, inst in enumerate(pis): 
                 #inst.keys() ['frame', 'sp', 'img', 'mask', 'maskX']
                 img = inst['img']
@@ -668,8 +669,8 @@ class MOTSTrackCarsTrainTransformer(Dataset):
         sample['points'] = np.concatenate(sample['points'], axis=0)
         sample['envs'] = np.array(sample["envs"], dtype=np.int32)
         sample['labels'] = np.concatenate(sample['labels'], axis=0)
-        sample['framestamp'] = np.concatenate(sample['framestamp'], axis=0)
         sample['xyxys'] = np.array(sample["xyxys"], dtype=np.float32)
+        sample['framestamp'] = np.array([sample['framestamp']])
         return sample
 
     def __getitem__(self, index):

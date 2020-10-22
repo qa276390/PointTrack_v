@@ -8,5 +8,8 @@ def get_model(name, model_opts):
     if name == "tracker_offset_emb":
         model = TrackerOffsetEmb(**model_opts)
         return model
+    if name == "tracker_offset_emb_transformer":
+        model = TransformerTrackerEmb(**model_opts)
+        return model
     else:
         raise RuntimeError("model \"{}\" not available".format(name))
