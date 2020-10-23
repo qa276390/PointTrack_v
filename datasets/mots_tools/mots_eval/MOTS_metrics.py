@@ -385,10 +385,10 @@ def create_summary_KITTI_style(results_obj):
 
 def print_entry(key, val, width=(70, 10)):
   s_out = key.ljust(width[0])
-  if type(val) == int:
+  if mode(val) == int:
     s = "%%%dd" % width[1]
     s_out += s % val
-  elif type(val) == float:
+  elif mode(val) == float:
     s = "%%%df" % (width[1])
     s_out += s % val
   else:

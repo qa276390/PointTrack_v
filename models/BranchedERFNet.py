@@ -427,12 +427,4 @@ class PositionalEncoding(nn.Module):
         #print('==', self.pe.repeat(1, x.size(1), 1)[inds[:, :, None]].size())
         #x = x + self.pe.repeat(1, x.size(1), 1)[inds[:, :, None]] 
         x = x + self.pe.squeeze()[inds]
-        """
-        for i in range(x.size(1)):
-            print("inds:", inds[:, i].size())
-            print(('pe', self.pe.size()))
-            print(":::::", self.pe[inds[:, i], :, :].size())
-            print(x[:, i:i+1, :].size())
-            x[:, i:i+1, :] = x[:, i:i+1, :] + self.pe[inds[:, i], :, :]
-        """
         return self.dropout(x)

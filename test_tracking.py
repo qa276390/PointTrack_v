@@ -13,6 +13,10 @@ from models import get_model
 from utils.mots_util import *
 from config import *
 import subprocess
+from torch.utils.tensorboard import SummaryWriter # visualization vtsai01
+
+# default `log_dir` is "runs" - we'll be more specific here
+writer = SummaryWriter('runs/pointtrack_test') # visualization vtsai01
 
 # torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.deterministic = True
@@ -84,11 +88,14 @@ print('args[\'save_dir\']', args['save_dir'])
 trackHelper = TrackHelper(args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
                           mask_iou=True, use_ttl=True, ttl=2) # use_ttl is optional @vtsai01
 print("+"*10)
+
+export_emb = False # visualization vtsai01
+
 with torch.no_grad():
     print(len(dataset_it))
 
     for sample in tqdm(dataset_it):
-        subf, frameCount = sample['name'][0][:-4].split('/')[-2:] # what is frameCount? #vtsai01
+        subf, frameCount = sample['name'][0][:-4].split('/')[-2:] # subf: folder; frameCount: NO. of frame
         frameCount = int(float(frameCount))
 
         # MOTS forward with tracking
@@ -99,13 +106,21 @@ with torch.no_grad():
         else:
             masks = sample['masks'][0]
             xyxys = sample['xyxys']
-            embeds = model(points, None, xyxys, infer=True)
-            embeds = embeds.cpu().numpy()
+            embeds_t = model(points, None, xyxys, infer=True)
+            embeds = embeds_t.cpu().numpy()
             masks = masks.numpy()
+        if export_emb: # visualization vtsai01
+            imgs = plt.imread(sample['name'][0])
+            imgs = imgs.reshape((3, imgs.shape[0],imgs.shape[1]))
+            imgs = torch.from_numpy(imgs[np.newaxis, :])
+
+            writer.add_embedding(embeds_t.cpu().view(1, -1),  \
+                   metadata=np.zeros((1, 1)), \
+                    label_img=imgs) 
 
         # do tracking
         trackHelper.tracking(subf, frameCount, embeds, masks)
-
+    writer.close()
     trackHelper.export_last_video()
 
 if 'run_eval' in args.keys() and args['run_eval']:

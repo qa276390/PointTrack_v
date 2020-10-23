@@ -27,7 +27,7 @@ args = dict(
         'name': 'mots_cars',
         'kwargs': {
             'root_dir': kittiRoot,
-            'type': 'train',
+            'mode': 'train',
             'kins': False,
             'size': 1000,
             'transform': my_transforms.get_transform([
@@ -42,7 +42,7 @@ args = dict(
                     'name': 'ToTensor',
                     'opts': {
                         'keys': ('image', 'instance','label'),
-                        'type': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
+                        'mode': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
                     }
                 },
             ]),
@@ -57,7 +57,7 @@ args = dict(
         'name': 'mots_cars',
         'kwargs': {
             'root_dir': kittiRoot,
-            'type': 'val',
+            'mode': 'val',
             # 'size': 500,
             'transform': my_transforms.get_transform([
                 {
@@ -71,7 +71,7 @@ args = dict(
                     'name': 'ToTensor',
                     'opts': {
                         'keys': ('image', 'instance', 'label'),
-                        'type': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
+                        'mode': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
                     }
                 },
             ]),

@@ -1,6 +1,6 @@
 import sys
 from mots_common.io import load_sequences, load_seqmap, write_sequences
-
+from tqdm import tqdm
 
 if __name__ == "__main__":
   if len(sys.argv) != 4:
@@ -12,7 +12,7 @@ if __name__ == "__main__":
   seqmap_filename = sys.argv[3]
 
   seqmap, _ = load_seqmap(seqmap_filename)
-  print("Loading ground truth images...")
+  tqdm.write("Loading ground truth images...")
   gt = load_sequences(gt_img_folder, seqmap)
-  print("Writing ground truth txts...")
+  tqdm.write("Writing ground truth txts...")
   write_sequences(gt, gt_txt_output_folder)

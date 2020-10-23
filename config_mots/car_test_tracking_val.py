@@ -26,7 +26,7 @@ args = dict(
         'name': 'mots_track_val_env_offset',
         'kwargs': {
             'root_dir': kittiRoot,
-            'type': 'val',
+            'mode': 'val',
             'num_points': 1500,
             'box': True,
             'gt': False,

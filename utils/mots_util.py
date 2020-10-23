@@ -94,8 +94,8 @@ def newElem(t, track_id, embed, mask, points=None, class_id=1):
 def newElem(t, track_id, embed, mask, points=None, class_id=1, embed_centered=None, n_tracks=1, ttl=4):
     #n_tracks += 1
     if(embed_centered is not None):
-        embed_center = (embed_centered * 0.5) + (embed * 0.5)
-        #embed_center = (embed_centered * (n_tracks - 1)/n_tracks) + (embed * 1/n_tracks)
+        #embed_center = (embed_centered * 0.5) + (embed * 0.5)
+        embed_center = (embed_centered * (n_tracks - 1)/n_tracks) + (embed * 1/n_tracks)
     else:
         embed_center = embed
 

@@ -118,7 +118,7 @@ def train(epoch):
     for param_group in optimizer.param_groups:
         print('learning rate: {}'.format(param_group['lr']))
 
-    print('lets')
+    print('Start Training...')
     for i, sample in enumerate(tqdm(train_dataset_it)):
         points = sample['points']
         xyxys = sample['xyxys']

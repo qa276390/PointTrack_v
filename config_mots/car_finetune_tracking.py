@@ -26,7 +26,7 @@ args = dict(
         'name': 'mots_track_cars_train',
         'kwargs': {
             'root_dir': kittiRoot,
-            'type': 'train',
+            'mode': 'train',
             'size': 500,
             'num_points': 1500,
             'shift': True,
@@ -35,7 +35,8 @@ args = dict(
             'category': True
         },
         'batch_size': 1,
-        'workers': 32
+        #'workers': 1
+        'workers':32
     },
 
     model = {

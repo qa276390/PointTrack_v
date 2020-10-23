@@ -27,7 +27,7 @@ args = dict(
         'name': 'mots_cars',
         'kwargs': {
             'root_dir': kittiRoot,
-            'type': 'crop',
+            'mode': 'crop',
             'size': 7000,
             'transform': my_transforms.get_transform([
                 {
@@ -38,7 +38,7 @@ args = dict(
                     'name': 'ToTensor',
                     'opts': {
                         'keys': ('image', 'instance','label'),
-                        'type': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
+                        'mode': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
                     }
                 },
                 {
@@ -59,7 +59,7 @@ args = dict(
         'name': 'mots_cars',
         'kwargs': {
             'root_dir': kittiRoot,
-            'type': 'val',
+            'mode': 'val',
             # 'size': 500,
             'transform': my_transforms.get_transform([
                 {
@@ -73,7 +73,7 @@ args = dict(
                     'name': 'ToTensor',
                     'opts': {
                         'keys': ('image', 'instance', 'label'),
-                        'type': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
+                        'mode': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
                     }
                 },
             ]),

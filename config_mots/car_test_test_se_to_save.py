@@ -31,32 +31,36 @@ args = dict(
         }
     },
 
-    save_dir='./car_SE_val_prediction/',
+    save_dir='./car_SE_test_prediction/',
     dataset= {
-        'name': 'mots_cars_val',
+        'name': 'mots_test',
         'kwargs': {
             'root_dir': kittiRoot,
             # 'mode': 'train',
-            'mode': 'val',
+            'mode': 'test',
             # 'size': 1000,
             'transform': my_transforms.get_transform([
                 {
                     'name': 'LU_Pad',
                     'opts': {
-                        'keys': ('mot_image', 'mot_instance','mot_label'),
+                        #'keys': ('mot_image', 'mot_instance','mot_label'),
+                        #'size': (384, 1248),
+                        'keys': ('mot_image',),
                         'size': (384, 1248),
                     }
                 },
                 {
                     'name': 'ToTensor',
                     'opts': {
-                        'keys': ('mot_image', 'mot_instance','mot_label'),
-                        'mode': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
+                        #'keys': ('mot_image', 'mot_instance','mot_label'),
+                        #'mode': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
+                        'keys': ('mot_image',),
+                        'mode': (torch.FloatTensor),
                     }
                 },
             ]),
         },
-        'batch_size': 1,
+        'batch_size': 1, #larger didn't faster?
         'workers': 32
     },
 

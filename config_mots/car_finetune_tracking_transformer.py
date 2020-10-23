@@ -20,7 +20,7 @@ args = dict(
     save=True,
     save_dir='./car_finetune_tracking_transformer',
     eval_config='car_test_tracking_val',
-    # resume_path='./car_finetune_tracking/checkpoint.pth',
+    resume_path='./car_finetune_tracking/checkpoint.pth',
 
     train_dataset = {
         'name': 'mots_track_cars_train_transformer',
@@ -35,8 +35,8 @@ args = dict(
             'category': True
         },
         'batch_size': 1,
-        'workers': 1
-        #'workers':32
+        #'workers': 1
+        'workers':32
     },
 
     model = {

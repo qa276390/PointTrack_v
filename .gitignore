@@ -1,3 +1,14 @@
+# Swap
+# *~
+
+# Models and Weight
+pointTrack_weights/
+*.zip
+
+# Results and Data
+results/
+data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
