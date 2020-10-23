@@ -135,9 +135,9 @@ def train(epoch):
             loss.backward()
             optimizer.step()
         
-        if i == 1:
-            print(sample.keys())
-            print('='*100)
+        #if i == 1:
+            #print(sample.keys())
+            #print('='*100)
 
     return loss_meter.avg, loss_emb_meter.avg
 
@@ -163,7 +163,7 @@ def val(epoch):
     save_val_dir = val_args['save_dir'].split('/')[1]
     p = subprocess.run([pythonPath, "-u", "eval.py",
                         os.path.join(rootDir, save_val_dir), kittiRoot + "instances", "val.seqmap"],
-                       stdout=subprocess.PIPE, cwd=rootDir + "datasets/mots_tools/mots_eval")
+                       stdout=subprocess.PIPE, cwd=os.path.join(rootDir, "datasets/mots_tools/mots_eval"))
     pout = p.stdout.decode("utf-8")
     if 'person' in args['save_dir']:
         class_str = "Evaluate class: Pedestrians"
