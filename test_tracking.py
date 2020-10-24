@@ -85,8 +85,14 @@ dColors = [(128, 0, 0), (170, 110, 40), (128, 128, 0), (0, 128, 128), (0, 0, 128
         , (255, 225, 25), (210, 245, 60), (60, 180, 75), (70, 240, 240), (0, 130, 200), (145, 30, 180), (240, 50, 230)
         , (128, 128, 128), (250, 190, 190), (255, 215, 180), (255, 250, 200), (170, 255, 195), (230, 190, 255), (255, 255, 255)]
 print('args[\'save_dir\']', args['save_dir'])
-trackHelper = TrackHelper(args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
-                          mask_iou=True, use_ttl=True, ttl=2) # use_ttl is optional @vtsai01
+
+use_transformer = True
+if use_transformer:
+    trackHelper = TrackHelperTransformer(model, args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
+                          mask_iou=True, use_ttl=False, ttl=2)
+else:
+    trackHelper = TrackHelper(args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
+                          mask_iou=True, use_ttl=False, ttl=2) # use_ttl is optional @vtsai01
 print("+"*10)
 
 export_emb = False # visualization vtsai01
@@ -125,8 +131,8 @@ with torch.no_grad():
 
 if 'run_eval' in args.keys() and args['run_eval']:
     # run eval
-    save_val_dir = args['save_dir'].split('/')[1]
+    save_val_dir = args['save_dir'].split('/')[1:]
     p = subprocess.run([pythonPath, "-u", "eval.py",
-                        os.path.join(rootDir, save_val_dir), kittiRoot + "instances", "val.seqmap"],
+                        os.path.join(rootDir, *save_val_dir), kittiRoot + "instances", "val.seqmap"],
                                    stdout=subprocess.PIPE, cwd=rootDir + "/datasets/mots_tools/mots_eval")
     print(p.stdout.decode("utf-8"))

@@ -4,10 +4,12 @@
 # Models and Weight
 pointTrack_weights/
 *.zip
+weights/
 
 # Results and Data
 results/
 data/
+output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

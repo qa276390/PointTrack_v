@@ -17,8 +17,9 @@ args = dict(
     display=False,
 
     save=True,
-    save_dir='./tracks_car_pointtrack_val/',
-    checkpoint_path='./car_finetune_tracking/checkpoint.pth',
+    save_dir='./output/tracking/tracks_car_pointtrack_val_trans/',
+    # checkpoint_path='./car_finetune_tracking/checkpoint.pth',
+    checkpoint_path='./weights/car_finetune_tracking_transformer/checkpoint.pth',
     # checkpoint_path='./pointTrack_weights/PointTrack.pthCar',
     run_eval=True,
 
@@ -38,7 +39,8 @@ args = dict(
     },
 
     model={
-        'name': 'tracker_offset_emb',
+        #'name': 'tracker_offset_emb',
+        'name': 'tracker_offset_emb_transformer',
         'kwargs': {
             'num_points': 1000,
             'margin': 0.2,

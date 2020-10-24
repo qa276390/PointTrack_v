@@ -186,17 +186,17 @@ class MOTSTrackCarsValOffset(Dataset):
                  border=False, env=False, gt=True, box=False, test=False, category=False, ex=0.2):
 
         print('MOTS Dataset created')
-        mode = 'training' if mode in 'training' else 'testing'
-        self.mode = mode
-        assert self.mode == 'testing'
+        #mode = 'training' if mode in 'training' or mode in "validation" else 'testing'
+        #self.mode = mode
+        #assert self.mode == 'testing'
 
         self.transform = transform
-        test = True if mode == 'testing' else False
+        test = False if mode in 'training' or mode in "validation" else True
 
         if not test:
             ids = self.SEQ_IDS_VAL
             timestamps = self.TIMESTEPS_PER_SEQ
-            self.image_root = os.path.join(kittiRoot, 'images')
+            self.image_root = os.path.join(kittiRoot, 'training/image_02')
             #self.mots_root = os.path.join(systemRoot, 'SpatialEmbeddings/car_SE_val_prediction')
             self.mots_root = os.path.join(rootDir, 'car_SE_val_prediction') # modify by vtsai01
         else:

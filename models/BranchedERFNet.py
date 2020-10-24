@@ -323,62 +323,75 @@ class TransformerTrackerEmb(nn.Module):
             loss = self.ranking_loss(dist_an, dist_ap, y).unsqueeze(0)
         return loss
 
-    def forward(self, points, labels, xyxys, framestamp, infer=False, visualize=False):
+    def forward(self, points=None, labels=None, xyxys=None, framestamp=None, embeds=None, current_frame=None, infer=False, visualize=False, infer_transformer_only=False):
         #print('forwarding')
-        points, xyxys, framestamp = points[0], xyxys[0], framestamp[0]
-        embeds = self.embedding(xyxys)
-        envs = points[:,self.num_points:]
-        points = points[:,:self.num_points, :5]
-        if infer:
-            return self.inference(points, envs, embeds)
-        elif visualize:
-            embeds, point_weights, bg_inds = self.point_feat(points.transpose(2, 1).contiguous(), envs.transpose(2, 1).contiguous(), embeds, with_weight=True)
-            return embeds, point_weights, bg_inds
+        if infer_transformer_only:
+            #framestamp = framestamp[0]
+            # embeds: (3, ?, 32)
+            # framestamp: (3, ?)
+            #print('f', framestamp)
+            inds = current_frame - framestamp
+            print('inds', inds)
+            output = self.tranformer_model(embeds, inds)
+            return output[-1, :]
         else:
-            embeds = self.point_feat(points.transpose(2, 1).contiguous(), envs.transpose(2, 1).contiguous(), embeds)
-            labels = labels[0]
-            triplet_losses = self.compute_triplet_loss(embeds, labels)
-            #print('embeds', embeds.size()) # ([72, 32]): (n_sample*3, embed_dim)
-            #print('framestamp', framestamp)
-            #print('labels', labels)
-            #####################
-            # append the embeds #
-            #####################
-            # if
-            # emb: (72, 32) 
-            #   -> (96, 32)
-            #   => (4, 24, 32)
-            # then
-            # src: (3, 24, 32)
-            # tgt: (1, 24, 32)
-            ##################### 
-            embeds_re = torch.reshape(embeds, (-1, 4, self.outputD)).permute(1, 0, 2)
-            labels_re = torch.reshape(labels, (-1, 4)).permute(1, 0)
-            fstamp_re = torch.reshape(framestamp, (-1, 4)).permute(1, 0)
+            if points is not None and xyxys is not None:
+                points, xyxys = points[0], xyxys[0]
+            if framestamp is not None:
+                framestamp = framestamp[0]
+            xy_embeds = self.embedding(xyxys)
+            envs = points[:,self.num_points:]
+            points = points[:,:self.num_points, :5]
+            if infer:
+                return self.inference(points, envs, xy_embeds)
+            elif visualize:
+                embeds, point_weights, bg_inds = self.point_feat(points.transpose(2, 1).contiguous(), envs.transpose(2, 1).contiguous(), xy_embeds, with_weight=True)
+                return embeds, point_weights, bg_inds
+            else:
+                embeds = self.point_feat(points.transpose(2, 1).contiguous(), envs.transpose(2, 1).contiguous(), xy_embeds)
+                labels = labels[0]
+                triplet_losses = self.compute_triplet_loss(embeds, labels)
+                #print('embeds', embeds.size()) # ([72, 32]): (n_sample*3, embed_dim)
+                #print('framestamp', framestamp)
+                #print('labels', labels)
+                #####################
+                # append the embeds #
+                #####################
+                # if
+                # emb: (72, 32) 
+                #   -> (96, 32)
+                #   => (4, 24, 32)
+                # then
+                # src: (3, 24, 32)
+                # tgt: (1, 24, 32)
+                ##################### 
+                embeds_re = torch.reshape(embeds, (-1, 4, self.outputD)).permute(1, 0, 2)
+                labels_re = torch.reshape(labels, (-1, 4)).permute(1, 0)
+                fstamp_re = torch.reshape(framestamp, (-1, 4)).permute(1, 0)
 
-            #print('---'*30)
-            fstamp_src = fstamp_re[:3, :]
-            fstamp_tgt = fstamp_re[-1, :]
-            labels = labels_re[:3, :]
-            src = embeds_re[:3, :]
-            tgt = embeds_re[-1, :]
-            #print('labels', labels)
-            #print('fstamp', fstamp_src)
-            inds = fstamp_tgt - fstamp_src
-            #print('inds',inds.size(),  inds)
-            ###########################################################################################################
-            #    For transformer,
-            #    src:(S, N, E), tgt:(T, N, E) where S and T are seq length, N is batch size, E is feature number
-            #    In this case dim should be src:(10, N, 64) which is  (frames, n_samples, feature_dims)
-            ###########################################################################################################
+                #print('---'*30)
+                fstamp_src = fstamp_re[:3, :]
+                fstamp_tgt = fstamp_re[-1, :]
+                labels = labels_re[:3, :]
+                src = embeds_re[:3, :]
+                tgt = embeds_re[-1, :]
+                #print('labels', labels)
+                #print('fstamp', fstamp_src)
+                inds = fstamp_tgt - fstamp_src
+                #print('inds',inds.size(),  inds)
+                ###########################################################################################################
+                #    For transformer,
+                #    src:(S, N, E), tgt:(T, N, E) where S and T are seq length, N is batch size, E is feature number
+                #    In this case dim should be src:(10, N, 64) which is  (frames, n_samples, feature_dims)
+                ###########################################################################################################
 
-            output = self.tranformer_model(src, inds)  # we have to bulid a customize transformer because of the poisition encoding.
-            #print('transformer_output SIZE', output.size())
+                output = self.tranformer_model(src, inds)  # we have to bulid a customize transformer because of the poisition encoding.
+                #print('transformer_output SIZE', output.size())
 
-            y = torch.ones_like(tgt)
-            transformer_losses = self.ranking_loss(output[-1, :], tgt, y).unsqueeze(0)
-         
-            return triplet_losses + transformer_losses
+                y = torch.ones_like(tgt)
+                transformer_losses = self.ranking_loss(output[-1, :], tgt, y).unsqueeze(0)
+            
+                return triplet_losses + transformer_losses
 
     def inference(self, points, envs, embeds):
         # assert points.shape[0] == 1
