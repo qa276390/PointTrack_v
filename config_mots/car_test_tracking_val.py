@@ -17,7 +17,7 @@ args = dict(
     display=False,
 
     save=True,
-    save_dir='./output/tracking/tracks_car_pointtrack_val_trans_with_decoder/',
+    save_dir='./outputs/tracking/tracks_car_pointtrack_val_trans_with_decoder/',
     #checkpoint_path='./car_finetune_tracking/checkpoint.pth',
     checkpoint_path='./weights/car_finetune_tracking_transformer_with_decoder/checkpoint.pth',
     # checkpoint_path='./pointTrack_weights/PointTrack.pthCar',
