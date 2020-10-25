@@ -408,12 +408,24 @@ class TransformerModel(nn.Module):
         encoder_layers = TransformerEncoderLayer(emb_dim, nhead, nhid, dropout)
         self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
 
+        self.encoder = nn.Linear(emb_dim, emb_dim)
+        self.decoder = nn.Linear(emb_dim, emb_dim)
+
+        self.init_weights()
+
+    def init_weights(self):
+        initrange = 0.1
+        self.encoder.bias.data.zero_()
+        self.encoder.weight.data.uniform_(-initrange, initrange)
+        self.decoder.bias.data.zero_()
+        self.decoder.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, src, inds):
- 
+
+        src = F.relu(self.encoder(src))
         src = self.pos_encoder(src, inds)
-        #print('src', src.size())
         output = self.transformer_encoder(src)
+        output = self.decoder(output)
 
         return output
 

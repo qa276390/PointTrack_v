@@ -18,9 +18,9 @@ args = dict(
     display_it=5,
 
     save=True,
-    save_dir='./car_finetune_tracking_transformer',
+    save_dir='./weights/car_finetune_tracking_transformer_with_decoder',
     eval_config='car_test_tracking_val',
-    resume_path='./car_finetune_tracking/checkpoint.pth',
+    resume_path='./weights/car_finetune_tracking/checkpoint.pth',
 
     train_dataset = {
         'name': 'mots_track_cars_train_transformer',
@@ -52,9 +52,9 @@ args = dict(
     },
 
     lr=2e-3,
-    milestones=[20, 30],
-    n_epochs=35,
-    start_epoch=1,
+    milestones=[50, 100],
+    n_epochs=150,
+    start_epoch=35,
 
     max_disparity=192.0,
     val_interval=1,

@@ -19,6 +19,11 @@ from utils.utils import AverageMeter, Cluster, Logger, Visualizer
 from file_utils import remove_key_word
 import subprocess
 
+from torch.utils.tensorboard import SummaryWriter
+
+# Writer will output to ./runs/ directory by default
+writer = SummaryWriter()
+
 torch.backends.cudnn.benchmark = True
 config_name = sys.argv[1]
 
@@ -118,7 +123,6 @@ def train(epoch):
     for param_group in optimizer.param_groups:
         print('learning rate: {}'.format(param_group['lr']))
 
-    print('Start Training...')
     for i, sample in enumerate(tqdm(train_dataset_it)):
         points = sample['points']
         xyxys = sample['xyxys']
@@ -134,10 +138,6 @@ def train(epoch):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        
-        #if i == 1:
-            #print(sample.keys())
-            #print('='*100)
 
     return loss_meter.avg, loss_emb_meter.avg
 
@@ -160,9 +160,9 @@ def val(epoch):
                         val_name], stdout=subprocess.PIPE, cwd=rootDir)
 
     val_args = eval(val_name).get_args()
-    save_val_dir = val_args['save_dir'].split('/')[1]
+    save_val_dir = val_args['save_dir'].split('/')[1:]
     p = subprocess.run([pythonPath, "-u", "eval.py",
-                        os.path.join(rootDir, save_val_dir), kittiRoot + "instances", "val.seqmap"],
+                        os.path.join(rootDir, *save_val_dir), kittiRoot + "instances", "val.seqmap"],
                        stdout=subprocess.PIPE, cwd=os.path.join(rootDir, "datasets/mots_tools/mots_eval"))
     pout = p.stdout.decode("utf-8")
     if 'person' in args['save_dir']:
@@ -203,15 +203,18 @@ for epoch in range(start_epoch, args['n_epochs']):
     train_loss, emb_loss = train(epoch)
     print('===> train loss: {:.4f}, train emb loss: {:.4f}'.format(train_loss, emb_loss))
     logger.add('train', train_loss)
+    writer.add_scalar('Loss/train', train_loss, epoch)
 
     if 'val_interval' not in args.keys() or epoch % args['val_interval'] == 0:
         val_loss, val_iou = val(epoch)
         print('===> val loss: {:.4f}, val iou: {:.4f}'.format(val_loss, val_iou))
         logger.add('val', val_loss)
+        writer.add_scalar('Loss/val', val_loss, epoch)
         logger.add('iou', val_iou)
+        writer.add_scalar('IoU/val', val_iou, epoch)
         # logger.plot(save=args['save'], save_dir=args['save_dir'])
 
-        is_best = val_iou > best_iou
+        is_best = val_iou >= best_iou
         best_iou = max(val_iou, best_iou)
 
         if args['save']:
@@ -225,4 +228,5 @@ for epoch in range(start_epoch, args['n_epochs']):
             }
             for param_group in optimizer.param_groups:
                 lrC = str(param_group['lr'])
+            print('Saving checkpoint...')
             save_checkpoint(state, is_best, str(best_iou) + '_' + lrC, is_lowest=False)

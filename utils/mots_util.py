@@ -175,7 +175,7 @@ class TrackHelper(object):
             self.reset(subfolder)
 
         self.update_active_track(frameCount)
-
+        print('embeds', embeds)
         # traverse insts
         n = len(embeds)
         if n < 1:
@@ -337,6 +337,7 @@ class TrackHelperTransformer(object):
         self.use_ttl = use_ttl
         self.init_ttl = ttl
         self.model = model
+        self.first = 0
         if car:
             self.reid_euclidean_scale = 1.0090931467228708
             self.reid_euclidean_offset = 8.810218833503743
@@ -380,7 +381,7 @@ class TrackHelperTransformer(object):
         self.active_tracks = active_tracks_
 
     def update_active_tracker_embs(self, current_frame):
-
+        
         for tracker in self.active_tracks:
             #tracker.update_framestamp()
             if tracker.queue_len == 3:
@@ -395,6 +396,12 @@ class TrackHelperTransformer(object):
                 embed_to_track = self.model(framestamp=framestamp, embeds=embeds, current_frame=current_frame, infer_transformer_only=True)
                 tracker.embed_to_track = embed_to_track.cpu().squeeze().numpy()
                 #print('embed_to_track', tracker.embed_to_track.shape)
+                #if(self.first==0):
+                    #print('embeds', tracker.embeds_queue)
+                    #print('embed_to_track', tracker.embed_to_track)
+                    #print('latest embed', tracker.embed)
+                    #print('diff', np.mean(tracker.embed - tracker.embed_to_track))
+                    #print('='*100)
 
     def tracking(self, subfolder, frameCount, embeds, masks):
         self.current_video = subfolder if self.current_video == None else self.current_video
