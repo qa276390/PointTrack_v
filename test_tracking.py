@@ -42,7 +42,14 @@ if args['save']:
         os.makedirs(args['save_dir'])
 
 # set device
-device = torch.device("cuda:0" if args['cuda'] else "cpu")
+def get_freer_gpu():
+    os.system('nvidia-smi -q -d Memory | grep -A4 GPU | grep Free >tmp')
+    memory_available = [int(x.split()[2]) for x in open('tmp', 'r').readlines()]
+    return np.argmax(memory_available)
+free_gpu_id = get_freer_gpu()
+print('free gpu id', free_gpu_id)
+device = torch.device(f"cuda:{free_gpu_id}" if args['cuda'] else "cpu")
+#torch.cuda.set_device(device)
 
 # dataloader
 dataset = get_dataset(
@@ -53,7 +60,6 @@ dataset_it = torch.utils.data.DataLoader(
 
 # load model
 model = get_model(args['model']['name'], args['model']['kwargs'])
-model = torch.nn.DataParallel(model).to(device)
 
 # load snapshot
 if os.path.exists(args['checkpoint_path']):
@@ -63,6 +69,11 @@ if os.path.exists(args['checkpoint_path']):
 else:
     #assert(False, 'checkpoint_path {} does not exist!'.format(args['checkpoint_path']))
     print(args['checkpoint_path'])
+
+# Parallel
+model = torch.nn.DataParallel(model, device_ids=[int(free_gpu_id)])
+model.to(f'cuda:{model.device_ids[0]}')
+
 
 model.eval()
 
