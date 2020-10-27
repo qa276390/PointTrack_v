@@ -98,7 +98,7 @@ dColors = [(128, 0, 0), (170, 110, 40), (128, 128, 0), (0, 128, 128), (0, 0, 128
         , (128, 128, 128), (250, 190, 190), (255, 215, 180), (255, 250, 200), (170, 255, 195), (230, 190, 255), (255, 255, 255)]
 print('args[\'save_dir\']', args['save_dir'])
 
-use_transformer = False
+use_transformer = True
 if use_transformer:
     trackHelper = TrackHelperTransformer(model, args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
                           mask_iou=True, use_ttl=False, ttl=2)

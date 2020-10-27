@@ -394,9 +394,10 @@ class TrackHelperTransformer(object):
                 #print('framestamp', framestamp.size())
                 #print('embeds', embeds.size())
                 embed_to_track = self.model(framestamp=framestamp, embeds=embeds, current_frame=current_frame, infer_transformer_only=True)
-                tracker.embed_to_track = embed_to_track.cpu().squeeze().numpy()
+                tracker.update_embed_to_track(embed_to_track.cpu().squeeze().numpy())
                 #print('embed_to_track', tracker.embed_to_track.shape)
-                if(self.first==0):
+
+                if(False):
                     print('embeds', tracker.embeds_queue)
                     print('embed_to_track', tracker.embed_to_track)
                     print('latest embed', tracker.embed)

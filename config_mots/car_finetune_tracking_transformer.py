@@ -18,7 +18,7 @@ args = dict(
     display_it=5,
 
     save=True,
-    save_dir='./weights/car_finetune_tracking_transformer',
+    save_dir='./weights/car_finetune_tracking_transformer_with_triplet',
     eval_config='car_test_tracking_val',
     resume_path='./weights/car_finetune_tracking/checkpoint.pth',
     #resume_path='./weights/car_finetune_tracking_transformer_with_decoder/checkpoint.pth',
