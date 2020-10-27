@@ -208,6 +208,7 @@ def save_checkpoint(state, is_best, iou_str, is_lowest=False, name='checkpoint.p
 
 #val_loss, val_iou = val(start_epoch-1)
 #print('===> val loss: {:.4f}, val iou: {:.4f}'.format(val_loss, val_iou))
+best_train_loss = 1e8
 
 for epoch in range(start_epoch, args['n_epochs']):
 
@@ -222,6 +223,24 @@ for epoch in range(start_epoch, args['n_epochs']):
     print('===> train loss: {:.4f}, train emb loss: {:.4f}'.format(train_loss, emb_loss))
     logger.add('train', train_loss)
     writer.add_scalar('Loss/train', train_loss, epoch)
+
+    if train_loss < best_train_loss:
+        best_train_loss = train_loss 
+        if args['save']:
+            state = {
+                'epoch': epoch,
+                'best_iou': best_iou,
+                'best_seed': best_seed,
+                'model_state_dict': model.state_dict(),
+                'optim_state_dict': optimizer.state_dict(),
+                'logger_data': logger.data,
+                'scheduler': scheduler
+            }
+            for param_group in optimizer.param_groups:
+                lrC = str(param_group['lr'])
+        save_checkpoint(state, True, str(best_train_loss) + '_' + lrC, is_lowest=False)
+        
+    
 
     if 'val_interval' not in args.keys() or epoch % args['val_interval'] == 0:
         val_loss, val_iou = val(epoch)

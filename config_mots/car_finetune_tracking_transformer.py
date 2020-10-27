@@ -58,7 +58,7 @@ args = dict(
     start_epoch=1,
 
     max_disparity=192.0,
-    val_interval=1,
+    val_interval=10,
 
     # loss options
     loss_opts={

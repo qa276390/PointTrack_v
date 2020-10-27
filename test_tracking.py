@@ -48,7 +48,7 @@ def get_freer_gpu():
     return np.argmax(memory_available)
 free_gpu_id = get_freer_gpu()
 print('free gpu id', free_gpu_id)
-device = torch.device(f"cuda:{free_gpu_id}" if args['cuda'] else "cpu")
+#device = torch.device(f"cuda:{free_gpu_id}" if args['cuda'] else "cpu")
 #torch.cuda.set_device(device)
 
 # dataloader
@@ -63,6 +63,7 @@ model = get_model(args['model']['name'], args['model']['kwargs'])
 
 # Parallel
 model = torch.nn.DataParallel(model, device_ids=[int(free_gpu_id)])
+print('d_ids', model.device_ids[0])
 model.to(f'cuda:{model.device_ids[0]}')
 
 # load snapshot
