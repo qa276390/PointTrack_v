@@ -62,7 +62,7 @@ def get_freer_gpu():
 free_gpu_id = get_freer_gpu()
 print('free gpu id', free_gpu_id)
 device = torch.device(f"cuda:{free_gpu_id}" if args['cuda'] else "cpu")
-
+CUDA_VIS = f"CUDA_VISIBLE_DEVICES={free_gpu_id}"
 
 model = torch.nn.DataParallel(model, device_ids=[int(free_gpu_id)])
 model.to(f'cuda:{model.device_ids[0]}')
@@ -177,7 +177,7 @@ def val(epoch):
 
     val_args = eval(val_name).get_args()
     save_val_dir = val_args['save_dir'].split('/')[1:]
-    p = subprocess.run([pythonPath, "-u", "eval.py",
+    p = subprocess.run([CUDA_VIS,pythonPath, "-u", "eval.py",
                         os.path.join(rootDir, *save_val_dir), kittiRoot + "instances", "val.seqmap"],
                        stdout=subprocess.PIPE, cwd=os.path.join(rootDir, "datasets/mots_tools/mots_eval"))
     pout = p.stdout.decode("utf-8")
@@ -236,9 +236,7 @@ for epoch in range(start_epoch, args['n_epochs']):
                 'logger_data': logger.data,
                 'scheduler': scheduler
             }
-            for param_group in optimizer.param_groups:
-                lrC = str(param_group['lr'])
-        save_checkpoint(state, True, str(best_train_loss) + '_' + lrC, is_lowest=False)
+        save_checkpoint(state, True, str(best_train_loss) , is_lowest=False)
         
     
 
@@ -268,4 +266,4 @@ for epoch in range(start_epoch, args['n_epochs']):
                 lrC = str(param_group['lr'])
 
             save_checkpoint(state, is_best, str(best_iou) + '_' + lrC, is_lowest=False)
-    scheduler.step(epoch)
+    #scheduler.step(epoch)

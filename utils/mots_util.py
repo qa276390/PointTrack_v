@@ -274,8 +274,8 @@ class TrackIdElement(object):
         self.ttl = ttl
 
         self.embed_to_track = embed
-        self.embeds_queue = [embed]
-        self.fstamps_queue = [t]
+        self.embeds_queue = [embed, embed, embed]
+        self.fstamps_queue = [t, t, t]
         self.queue_len = len(self.embeds_queue)
 
         mask_np = np.asfortranarray(mask.astype(np.uint8))

@@ -407,7 +407,8 @@ class TransformerTrackerEmb(nn.Module):
                 
                 transformer_losses = self.compute_triplet_loss(src_and_tgt, labels)
             
-                return triplet_losses + transformer_losses
+                #return triplet_losses + transformer_losses
+                return transformer_losses
 
     def inference(self, points, envs, embeds):
         # assert points.shape[0] == 1
