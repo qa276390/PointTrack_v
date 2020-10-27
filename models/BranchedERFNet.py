@@ -374,9 +374,13 @@ class TransformerTrackerEmb(nn.Module):
                 #print('---'*30)s
                 fstamp_src = fstamp_re[:3, :]
                 fstamp_tgt = fstamp_re[-1, :]
-                labels = labels_re[:3, :]
+                
                 src = embeds_re[:3, :]
                 tgt = embeds_re[-1, :]
+                
+                src_labels = labels_re[-2, :]
+                tgt_labels = labels_re[-1, :] # src_labels and tgt_labels suppose should be the same
+
                 #print('labels', labels)
                 #print('fstamp', fstamp_src)
                 inds = fstamp_tgt - fstamp_src
@@ -391,11 +395,17 @@ class TransformerTrackerEmb(nn.Module):
                 #print('transformer_output SIZE', output.size())
                 #print('tgt', tgt.size())
                 #print('output', output[-1, :].size())
-                y = torch.ones(tgt.size(0)).cuda() # loss decrease when dist smaller
+                #y = torch.ones(tgt.size(0)).cuda() # loss decrease when dist smaller
                 #transformer_losses = self.cos_emb_loss(output[-1, :], tgt, y).unsqueeze(0)
-                dist = torch.dist(output[-1, :], tgt, p=2)
-                transformer_losses = self.hinge_loss(dist, y).unsqueeze(0)
+                #dist = torch.dist(output[-1, :], tgt, p=2)
+                #transformer_losses = self.hinge_loss(dist, y).unsqueeze(0)
+
+                src_out = output[-1, :]
+
+                src_and_tgt = torch.cat([src_out, tgt])
+                labels = torch.cat([src_labels, tgt_labels])
                 
+                transformer_losses = self.compute_triplet_loss(src_and_tgt, labels)
             
                 return triplet_losses + transformer_losses
 

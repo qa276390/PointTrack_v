@@ -18,6 +18,7 @@ from models import get_model
 from utils.utils import AverageMeter, Cluster, Logger, Visualizer
 from file_utils import remove_key_word
 import subprocess
+import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -54,8 +55,18 @@ model = get_model(args['model']['name'], args['model']['kwargs'])
 model.init_output(args['loss_opts']['n_sigma'])
 
 # set device
-device = torch.device("cuda:0" if args['cuda'] else "cpu")
-model = torch.nn.DataParallel(model).to(device)
+def get_freer_gpu():
+    os.system('nvidia-smi -q -d Memory | grep -A4 GPU | grep Free >tmp')
+    memory_available = [int(x.split()[2]) for x in open('tmp', 'r').readlines()]
+    return np.argmax(memory_available)
+free_gpu_id = get_freer_gpu()
+print('free gpu id', free_gpu_id)
+device = torch.device(f"cuda:{free_gpu_id}" if args['cuda'] else "cpu")
+
+
+model = torch.nn.DataParallel(model, device_ids=[int(free_gpu_id)])
+model.to(f'cuda:{model.device_ids[0]}')
+#model = torch.nn.DataParallel(model).to(device)
 
 # set optimizer
 optimizer = torch.optim.Adam(
@@ -197,6 +208,7 @@ def save_checkpoint(state, is_best, iou_str, is_lowest=False, name='checkpoint.p
 
 #val_loss, val_iou = val(start_epoch-1)
 #print('===> val loss: {:.4f}, val iou: {:.4f}'.format(val_loss, val_iou))
+best_train_loss = 1e8
 
 for epoch in range(start_epoch, args['n_epochs']):
 
@@ -211,6 +223,24 @@ for epoch in range(start_epoch, args['n_epochs']):
     print('===> train loss: {:.4f}, train emb loss: {:.4f}'.format(train_loss, emb_loss))
     logger.add('train', train_loss)
     writer.add_scalar('Loss/train', train_loss, epoch)
+
+    if train_loss < best_train_loss:
+        best_train_loss = train_loss 
+        if args['save']:
+            state = {
+                'epoch': epoch,
+                'best_iou': best_iou,
+                'best_seed': best_seed,
+                'model_state_dict': model.state_dict(),
+                'optim_state_dict': optimizer.state_dict(),
+                'logger_data': logger.data,
+                'scheduler': scheduler
+            }
+            for param_group in optimizer.param_groups:
+                lrC = str(param_group['lr'])
+        save_checkpoint(state, True, str(best_train_loss) + '_' + lrC, is_lowest=False)
+        
+    
 
     if 'val_interval' not in args.keys() or epoch % args['val_interval'] == 0:
         val_loss, val_iou = val(epoch)
