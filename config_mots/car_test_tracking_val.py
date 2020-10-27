@@ -17,10 +17,10 @@ args = dict(
     display=False,
 
     save=True,
-    save_dir='./outputs/tracking/tracks_car_pointtrack_val_trans_with_decoder/',
+    save_dir='./outputs/tracking/tracks_car_pointtrack_val_transformer/',
     #checkpoint_path='./car_finetune_tracking/checkpoint.pth',
-    checkpoint_path='./weights/car_finetune_tracking_transformer_with_decoder/checkpoint.pth',
-    # checkpoint_path='./pointTrack_weights/PointTrack.pthCar',
+    checkpoint_path='./weights/car_finetune_tracking_transformer/checkpoint.pth',
+    #checkpoint_path='./weights/car_finetune_tracking_transformer_with_decoder/best_iou_model.pth83.87_0.002',
     run_eval=True,
 
     dataset= {

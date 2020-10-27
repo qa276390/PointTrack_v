@@ -290,6 +290,8 @@ class TransformerTrackerEmb(nn.Module):
         self.num_points = num_points
         self.margin = margin
         self.ranking_loss = nn.MarginRankingLoss(margin=margin)
+        #self.cos_emb_loss = nn.CosineEmbeddingLoss(margin=margin)
+        self.hinge_loss = nn.HingeEmbeddingLoss(margin=margin)
         self.embedding = LocationEmbedding
         self.tranformer_model = TransformerModel(outputD, 2, 200, 2, posenc_max_len=5000)
         self.outputD = outputD
@@ -331,7 +333,7 @@ class TransformerTrackerEmb(nn.Module):
             # framestamp: (3, ?)
             #print('f', framestamp)
             inds = current_frame - framestamp
-            print('inds', inds)
+            #print('inds', inds)
             output = self.tranformer_model(embeds, inds)
             return output[-1, :]
         else:
@@ -369,7 +371,7 @@ class TransformerTrackerEmb(nn.Module):
                 labels_re = torch.reshape(labels, (-1, 4)).permute(1, 0)
                 fstamp_re = torch.reshape(framestamp, (-1, 4)).permute(1, 0)
 
-                #print('---'*30)
+                #print('---'*30)s
                 fstamp_src = fstamp_re[:3, :]
                 fstamp_tgt = fstamp_re[-1, :]
                 labels = labels_re[:3, :]
@@ -387,9 +389,13 @@ class TransformerTrackerEmb(nn.Module):
 
                 output = self.tranformer_model(src, inds)  # we have to bulid a customize transformer because of the poisition encoding.
                 #print('transformer_output SIZE', output.size())
-
-                y = torch.ones_like(tgt)
-                transformer_losses = self.ranking_loss(output[-1, :], tgt, y).unsqueeze(0)
+                #print('tgt', tgt.size())
+                #print('output', output[-1, :].size())
+                y = torch.ones(tgt.size(0)).cuda() # loss decrease when dist smaller
+                #transformer_losses = self.cos_emb_loss(output[-1, :], tgt, y).unsqueeze(0)
+                dist = torch.dist(output[-1, :], tgt, p=2)
+                transformer_losses = self.hinge_loss(dist, y).unsqueeze(0)
+                
             
                 return triplet_losses + transformer_losses
 

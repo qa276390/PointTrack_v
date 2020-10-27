@@ -175,7 +175,7 @@ class TrackHelper(object):
             self.reset(subfolder)
 
         self.update_active_track(frameCount)
-        print('embeds', embeds)
+        #print('embeds', embeds)
         # traverse insts
         n = len(embeds)
         if n < 1:
@@ -396,11 +396,12 @@ class TrackHelperTransformer(object):
                 embed_to_track = self.model(framestamp=framestamp, embeds=embeds, current_frame=current_frame, infer_transformer_only=True)
                 tracker.embed_to_track = embed_to_track.cpu().squeeze().numpy()
                 #print('embed_to_track', tracker.embed_to_track.shape)
-                #if(self.first==0):
-                    #print('embeds', tracker.embeds_queue)
-                    #print('embed_to_track', tracker.embed_to_track)
-                    #print('latest embed', tracker.embed)
-                    #print('diff', np.mean(tracker.embed - tracker.embed_to_track))
+                if(self.first==0):
+                    print('embeds', tracker.embeds_queue)
+                    print('embed_to_track', tracker.embed_to_track)
+                    print('latest embed', tracker.embed)
+                    self.first += 1
+                    print('diff', np.mean(tracker.embed - tracker.embed_to_track))
                     #print('='*100)
 
     def tracking(self, subfolder, frameCount, embeds, masks):

@@ -88,15 +88,20 @@ if 'resume_path' in args.keys() and args['resume_path'] is not None and os.path.
     if 'start_epoch' in args.keys():
         start_epoch = args['start_epoch']
     elif 'epoch' in state.keys():
-        start_epoch = state['epoch'] + 1
+        start_epoch = state['epoch'] - 1
     else:
         start_epoch = 1
+    if 'optimizer_state_dict' in args.keys():
+        optimizer.load_state_dict(state['optimizer_state_dict'])
+    if 'scheduler' in args.keys():
+        scheduler.load_state_dict(state['scheduler'])
     # best_iou = state['best_iou']
     for kk in state.keys():
         if 'state_dict' in kk:
             state_dict_key = kk
             break
     new_state_dict = state[state_dict_key]
+    print('state.keys:', state.keys())
     if not 'state_dict_keywords' in args.keys():
         try:
             model.load_state_dict(new_state_dict, strict=True)
@@ -190,11 +195,13 @@ def save_checkpoint(state, is_best, iou_str, is_lowest=False, name='checkpoint.p
         shutil.copyfile(file_name, os.path.join(
             args['save_dir'], 'best_seed_model.pth'))
 
+#val_loss, val_iou = val(start_epoch-1)
+#print('===> val loss: {:.4f}, val iou: {:.4f}'.format(val_loss, val_iou))
 
 for epoch in range(start_epoch, args['n_epochs']):
 
     print('Starting epoch {}'.format(epoch))
-    scheduler.step(epoch)
+    # scheduler.step(epoch)
     # if epoch == start_epoch:
     #     print('Initial eval')
     #     val_loss, val_iou = val(epoch)
@@ -224,9 +231,11 @@ for epoch in range(start_epoch, args['n_epochs']):
                 'best_seed': best_seed,
                 'model_state_dict': model.state_dict(),
                 'optim_state_dict': optimizer.state_dict(),
-                'logger_data': logger.data
+                'logger_data': logger.data,
+                'scheduler': scheduler
             }
             for param_group in optimizer.param_groups:
                 lrC = str(param_group['lr'])
-            print('Saving checkpoint...')
+
             save_checkpoint(state, is_best, str(best_iou) + '_' + lrC, is_lowest=False)
+    scheduler.step(epoch)
