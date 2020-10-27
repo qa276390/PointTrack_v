@@ -17,8 +17,10 @@ args = dict(
     display=False,
 
     save=True,
-    save_dir='./outputs/tracking/tracks_car_pointtrack_val_transformer/',
-    checkpoint_path='./pointTrack_weights/checkpoint.pth',
+    #save_dir='./outputs/tracking/tracks_car_pointtrack_val_transformer/',
+    save_dir='./outputs/tracking/tracks_car_pointtrack_val',
+    checkpoint_path='./weights/car_finetune_tracking/checkpoint.pth',
+    #checkpoint_path='./pointTrack_weights/checkpoint.pth',
     #checkpoint_path='./weights/car_finetune_tracking_transformer/checkpoint.pth',
     #checkpoint_path='./weights/car_finetune_tracking_transformer_with_decoder/best_iou_model.pth83.87_0.002',
     run_eval=True,
@@ -39,8 +41,8 @@ args = dict(
     },
 
     model={
-        #'name': 'tracker_offset_emb',
-        'name': 'tracker_offset_emb_transformer',
+        'name': 'tracker_offset_emb',
+        #'name': 'tracker_offset_emb_transformer',
         'kwargs': {
             'num_points': 1000,
             'margin': 0.2,
