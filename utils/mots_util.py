@@ -274,8 +274,8 @@ class TrackIdElement(object):
         self.ttl = ttl
 
         self.embed_to_track = embed
-        self.embeds_queue = [embed]
-        self.fstamps_queue = [t]
+        self.embeds_queue = [embed, embed, embed]
+        self.fstamps_queue = [t, t, t]
         self.queue_len = len(self.embeds_queue)
 
         mask_np = np.asfortranarray(mask.astype(np.uint8))
@@ -387,9 +387,9 @@ class TrackHelperTransformer(object):
             if tracker.queue_len == 3:
                 framestamp = torch.tensor(tracker.fstamps_queue)
                 framestamp = torch.unsqueeze(framestamp, 1)
-                embeds = torch.tensor(tracker.embeds_queue)
+                embeds_ = torch.tensor(tracker.embeds_queue)
                 #print('embeds', embeds.size())
-                embeds = torch.unsqueeze(embeds, 1)
+                embeds = torch.unsqueeze(embeds_, 1)
                 #print('-'*100)
                 #print('framestamp', framestamp.size())
                 #print('embeds', embeds.size())
@@ -403,6 +403,9 @@ class TrackHelperTransformer(object):
                     print('latest embed', tracker.embed)
                     self.first += 1
                     print('diff', np.mean(tracker.embed - tracker.embed_to_track))
+                    #print(embeds.size())
+                    #print(torch.tensor([tracker.embed_to_track, tracker.embed_to_track, tracker.embed_to_track]).size())
+                    print(cdist(embeds_, torch.tensor([tracker.embed_to_track, tracker.embed_to_track, tracker.embed_to_track]), "euclidean" if not self.cosine else 'cosine'))
                     #print('='*100)
 
     def tracking(self, subfolder, frameCount, embeds, masks):
@@ -459,6 +462,7 @@ class TrackHelperTransformer(object):
         asso_sim = np.zeros((n, len(self.active_tracks)))
 
         detections_assigned = np.zeros(len(embeds)).astype(np.bool)
+
         reid_dists = cdist(curr_reids, last_reids, "euclidean" if not self.cosine else 'cosine')
         asso_sim += self.reid_euclidean_scale * (self.reid_euclidean_offset - reid_dists)
 

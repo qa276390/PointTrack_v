@@ -20,8 +20,8 @@ args = dict(
     save_dir='./outputs/tracking/tracks_car_pointtrack_val_transformer/',
     #save_dir='./outputs/tracking/tracks_car_pointtrack_val',
     #checkpoint_path='./weights/car_finetune_tracking/checkpoint.pth',
-    checkpoint_path='./weights/car_finetune_tracking_transformer_with_triplet/checkpoint.pth',
-    #checkpoint_path='./weights/car_finetune_tracking_transformer_with_decoder/best_iou_model.pth83.87_0.002',
+    #checkpoint_path='./weights/car_finetune_tracking_transformer_with_triplet/checkpoint.pth',
+    checkpoint_path='./weights/car_finetune_tracking_transformer_with_triplet/best_iou_model.pth85.26_0.0002',
     #run_eval=False,
     run_eval=True,
 

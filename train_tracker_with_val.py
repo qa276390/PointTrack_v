@@ -224,6 +224,7 @@ for epoch in range(start_epoch, args['n_epochs']):
     logger.add('train', train_loss)
     writer.add_scalar('Loss/train', train_loss, epoch)
 
+    """
     if train_loss < best_train_loss:
         best_train_loss = train_loss 
         if args['save']:
@@ -239,7 +240,7 @@ for epoch in range(start_epoch, args['n_epochs']):
             for param_group in optimizer.param_groups:
                 lrC = str(param_group['lr'])
         save_checkpoint(state, True, str(best_train_loss) + '_' + lrC, is_lowest=False)
-        
+    """
     
 
     if 'val_interval' not in args.keys() or epoch % args['val_interval'] == 0:
