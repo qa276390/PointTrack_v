@@ -124,6 +124,7 @@ class TrackHelper(object):
         #self.active_track_ttl = []
         self.use_ttl = use_ttl
         self.init_ttl = ttl
+       
         if car:
             self.reid_euclidean_scale = 1.0090931467228708
             self.reid_euclidean_offset = 8.810218833503743
@@ -131,6 +132,7 @@ class TrackHelper(object):
             self.keep_alive = alive_car
             self.class_id=1
             self.mask_iou_scale = mask_iou_scale_car    # 0.74/1.0090931467228708
+    
         else:
             self.reid_euclidean_offset = 9.447084376750222
             self.reid_euclidean_scale = 1.3437965549876354
@@ -138,6 +140,10 @@ class TrackHelper(object):
             self.keep_alive = alive_person
             self.class_id = 2
             self.mask_iou_scale = mask_iou_scale_person # 0.54/1.3437965549876354
+
+        if(not self.mask_iou):
+            self.association_threshold = self.association_threshold / (self.reid_euclidean_scale + self.mask_iou_scale)
+
         print('params:', 'car' if car else 'pedestrian', self.keep_alive, self.association_threshold,\
             'mask_iou: %s' % self.mask_iou_scale if self.mask_iou else 'no mask iou', \
             'init_ttl: %s' % self.init_ttl if self.use_ttl else 'not using ttl' )

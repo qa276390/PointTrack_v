@@ -103,7 +103,7 @@ use_transformer = True if 'transformer' in args['model']['name'] else False
 
 if use_transformer:
     trackHelper = TrackHelperTransformer(model, args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
-                          mask_iou=True, use_ttl=False, ttl=2)
+                          mask_iou=False, use_ttl=False, ttl=2)
 else:
     trackHelper = TrackHelper(args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
                           mask_iou=True, use_ttl=False, ttl=2) # use_ttl is optional @vtsai01

@@ -1,10 +1,12 @@
-# Swap
-# *~
+# Swap and Tmp
+*~
+tmp
 
 # Models and Weight
 pointTrack_weights/
 *.zip
 weights/
+runs/
 
 # Results and Data
 results/
