@@ -15,6 +15,7 @@ from PIL import Image
 import multiprocessing
 from tqdm import tqdm
 import torch
+import torchvision
 
 
 def readInstCar(path, class_id=26):
@@ -53,7 +54,7 @@ def leave_needed(inst_paths, class_id):
 
 
 #TrackElement = namedtuple("TrackElement", ["t", "track_id", "class_id", "mask", "embed", "points" ])
-TrackElement = namedtuple("TrackElement", ["t", "track_id", "class_id", "mask", "embed", "points" , "embed_center", "n_tracks", "ttl"])
+TrackElement = namedtuple("TrackElement", ["t", "track_id", "class_id", "mask", "embed", "points", "embed_tracked", "embed_center", "n_tracks", "ttl", "xyxy", "fpath"])
 munkres_obj = munkres.Munkres()
 """
 p = subprocess.run(["python3", "eval.py",
@@ -92,7 +93,7 @@ def newElem(t, track_id, embed, mask, points=None, class_id=1):
     mask_coco = maskUtils.encode(mask_np)
     return TrackElement(t=t, mask=mask_coco, class_id=class_id, track_id=track_id, embed=embed, points=points)
 """
-def newElem(t, track_id, embed, mask, points=None, class_id=1, embed_centered=None, n_tracks=1, ttl=4):
+def newElem(t, track_id, embed, mask, points=None, class_id=1, embed_tracked=None, embed_centered=None, n_tracks=1, ttl=4, xyxy=None, fpath=None):
     #n_tracks += 1
     if(embed_centered is not None):
         #embed_center = (embed_centered * 0.5) + (embed * 0.5)
@@ -102,15 +103,15 @@ def newElem(t, track_id, embed, mask, points=None, class_id=1, embed_centered=No
 
     mask_np = np.asfortranarray(mask.astype(np.uint8))
     mask_coco = maskUtils.encode(mask_np)
-    return TrackElement(t=t, mask=mask_coco, class_id=class_id, track_id=track_id, embed=embed, points=points, embed_center=embed_center, n_tracks=n_tracks, ttl=ttl)
+    return TrackElement(t=t, mask=mask_coco, class_id=class_id, track_id=track_id, embed=embed, points=points, embed_tracked=embed_tracked, embed_center=embed_center, n_tracks=n_tracks, ttl=ttl, xyxy=xyxy, fpath=fpath)
 def Elem_execttl(el):
-    return TrackElement(t=el.t, mask=el.mask, class_id=el.class_id, track_id=el.track_id, embed=el.embed, points=el.points, embed_center=el.embed_center, n_tracks=el.n_tracks, ttl=el.ttl-1)
+    return TrackElement(t=el.t, mask=el.mask, class_id=el.class_id, track_id=el.track_id, embed=el.embed, points=el.points, embed_center=el.embed_center, n_tracks=el.n_tracks, ttl=el.ttl-1, xyxy=el.xyxy, fpath=el.fpath)
 
 
 class TrackHelper(object):
 
     def __init__(self, save_dir, margin, t_car=0.8165986526897969, t_person=0.47985540892434836, alive_car=5, alive_person=30, car=True,
-                 mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False, use_ttl=False, ttl=4):
+                 mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False, use_ttl=False, ttl=4, export_emb=False, tb_writer=None):
         # mask_iou_scale_car 0.7~0.8
         # t_car 0.7~1.0 or 6.0
         self.margin = margin
@@ -124,6 +125,8 @@ class TrackHelper(object):
         #self.active_track_ttl = []
         self.use_ttl = use_ttl
         self.init_ttl = ttl
+        self.tb_writer = tb_writer
+        self.export_emb = export_emb
        
         if car:
             self.reid_euclidean_scale = 1.0090931467228708
@@ -159,7 +162,49 @@ class TrackHelper(object):
         with open(out_filename, "w") as f:
             for track in self.all_tracks:
                 print(track.t, track.track_id, track.class_id, *track.mask['size'], track.mask['counts'].decode(encoding='UTF-8'), file=f)
+    
+    def export_embeddings(self):
+        if len(self.all_tracks) <= 0:
+            return 
+        img_size = (50, 50)
+        transform = torchvision.transforms.Compose([
+            torchvision.transforms.Resize(img_size),
+            torchvision.transforms.ToTensor(),
+        ])
+       
+        tqdm.write('Exporting embeddings '+ str(self.current_video))       
+        imgs = torch.zeros(0)
+        labels = []
+        embeds = torch.zeros(0)
 
+        for track in self.all_tracks:
+            img = Image.open(track.fpath).convert('RGB')
+            
+            lx = int(track.xyxy[0] * img.width)
+            ux = int(track.xyxy[2] * img.width)
+            ly = int(track.xyxy[3] * img.height)
+            uy = int(track.xyxy[1] * img.height)
+            img_crop = img.crop((lx, uy, ux, ly))
+
+            img_crop = torch.unsqueeze(transform(img_crop), 0)
+           
+            embed = torch.unsqueeze(torch.tensor(track.embed), 0)
+            imgs = torch.cat((imgs, img_crop), 0)
+            labels.append("{}_{:04d}_{:03d}".format(self.current_video, track.t, track.track_id))
+            embeds = torch.cat((embeds, embed), 0)
+
+            if(track.embed_tracked is not None):
+                embed_tracked = torch.unsqueeze(torch.tensor(track.embed_tracked), 0)
+                imgs = torch.cat((imgs, img_crop), 0)
+                labels.append("{}_{:04d}_{:03d}_tracked".format(self.current_video, track.t, track.track_id))
+                embeds = torch.cat((embeds, embed_tracked), 0)
+
+
+        self.tb_writer.add_embedding(embeds,  \
+                                    metadata=labels, \
+                                    label_img=imgs,  \
+                                    tag=self.current_video)     
+        tqdm.write('Done exporting embeddings for'+ str(self.current_video))
     def compute_dist(self, embeds, embed):
         src = embed.unsqueeze(0)
         dist = torch.pow(src.repeat(embeds.shape[0], 1) - embeds, 2).sum(dim=1)
@@ -172,11 +217,13 @@ class TrackHelper(object):
                 active_tracks_.append(track)
         self.active_tracks = active_tracks_
 
-    def tracking(self, subfolder, frameCount, embeds, masks):
+    def tracking(self, subfolder, frameCount, embeds, masks, xyxys, filepath):
         self.current_video = subfolder if self.current_video == None else self.current_video
         self.next_inst_id = 1 if self.next_inst_id == None else self.next_inst_id
         if not subfolder == self.current_video:
             # a new video
+            if self.export_emb:
+                self.export_embeddings()
             self.export_last_video()
             self.reset(subfolder)
 
@@ -191,7 +238,9 @@ class TrackHelper(object):
             for i in range(n):
                 embed = embeds[i]
                 mask = masks[i]
-                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl)
+                xyxy = xyxys[i]
+                fpath = filepath
+                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl, xyxy=xyxy, fpath=fpath)
                 self.all_tracks.append(current_inst)
                 self.active_tracks.append(current_inst)
                 #self.active_track_ttl.append(3) # 3 frames to live @vtsai01
@@ -206,17 +255,7 @@ class TrackHelper(object):
         # compare inst by inst.
         # only compare with previous embeds, not including embeds of this frame
         if self.use_ttl:
-            #last_reids = np.concatenate([el.embed[np.newaxis] if(el.ttl>0) else el.embed_center[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
-            
-            reids_emb = []
-            for el in self.active_tracks:
-                if el.ttl > 0:
-                    reids_emb.append(el.embed[np.newaxis])
-                else:
-                    reids_emb.append(el.embed_center[np.newaxis])
-                    #tqdm.write('using center with diff:'+ str(cdist(el.embed[np.newaxis], el.embed_center[np.newaxis], "euclidean" if not self.cosine else 'cosine')[0]))
-            last_reids = np.concatenate(reids_emb, axis=0)
-            
+            last_reids = np.concatenate([el.embed[np.newaxis] if(el.ttl>0) else el.embed_center[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)        
         else:
             last_reids = np.concatenate([el.embed[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
         curr_reids = embeds
@@ -244,9 +283,11 @@ class TrackHelper(object):
                 continue
             embed = embeds[row]
             mask = masks[row]
+            xyxy = xyxys[row]
+            fpath = filepath
             #current_inst = newElem(frameCount, self.active_tracks[column].track_id, embed, mask, class_id=self.class_id)
             current_inst = newElem(frameCount, self.active_tracks[column].track_id, embed, mask,  ttl=self.init_ttl, \
-                        class_id=self.class_id, embed_centered=self.active_tracks[column].embed_center, n_tracks=self.active_tracks[column].n_tracks+1) # @vtsai01
+                        class_id=self.class_id, embed_centered=self.active_tracks[column].embed_center, n_tracks=self.active_tracks[column].n_tracks+1, xyxy=xyxy, fpath=fpath) # @vtsai01
             self.all_tracks.append(current_inst)
             self.active_tracks[column] = current_inst
             #self.active_track_ttl[column] = 3 # 3 frames to live @vtsai01 
@@ -258,7 +299,9 @@ class TrackHelper(object):
             for i in detections_assigned_Inds:
                 embed = embeds[i]
                 mask = masks[i]
-                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl)
+                xyxy = xyxys[i]
+                fpath = filepath
+                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl, xyxy=xyxy, fpath=fpath)
                 self.all_tracks.append(current_inst)
                 self.active_tracks.append(current_inst)
                 #self.active_track_ttl.append(3) # 3 frames to live @vtsai01
@@ -328,7 +371,7 @@ class TrackIdElement(object):
 class TrackHelperTransformer(object):
 
     def __init__(self, model, save_dir, margin, t_car=0.8165986526897969, t_person=0.47985540892434836, alive_car=5, alive_person=30, car=True,
-                 mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False, use_ttl=False, ttl=4):
+                 mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False, use_ttl=False, ttl=4, export_emb=False, tb_writer=None):
         # mask_iou_scale_car 0.7~0.8
         # t_car 0.7~1.0 or 6.0
         self.margin = margin
@@ -344,6 +387,8 @@ class TrackHelperTransformer(object):
         self.init_ttl = ttl
         self.model = model
         self.first = 0
+        self.tb_writer = tb_writer
+        self.export_emb = export_emb
         if car:
             self.reid_euclidean_scale = 1.0090931467228708
             self.reid_euclidean_offset = 8.810218833503743
@@ -358,6 +403,9 @@ class TrackHelperTransformer(object):
             self.keep_alive = alive_person
             self.class_id = 2
             self.mask_iou_scale = mask_iou_scale_person # 0.54/1.3437965549876354
+        
+        if(not self.mask_iou):
+            self.association_threshold = self.association_threshold / (self.reid_euclidean_scale + self.mask_iou_scale)
         print('params:', 'car' if car else 'pedestrian', self.keep_alive, self.association_threshold,\
             'mask_iou: %s' % self.mask_iou_scale if self.mask_iou else 'no mask iou', \
             'init_ttl: %s' % self.init_ttl if self.use_ttl else 'not using ttl' )
@@ -373,6 +421,50 @@ class TrackHelperTransformer(object):
         with open(out_filename, "w") as f:
             for track in self.all_tracks:
                 print(track.t, track.track_id, track.class_id, *track.mask['size'], track.mask['counts'].decode(encoding='UTF-8'), file=f)
+
+    def export_embeddings(self):
+        if len(self.all_tracks) <= 0:
+            return 
+        img_size = (50, 50)
+        transform = torchvision.transforms.Compose([
+            torchvision.transforms.Resize(img_size),
+            torchvision.transforms.ToTensor(),
+        ])
+       
+        tqdm.write('Exporting embeddings '+ str(self.current_video))       
+        imgs = torch.zeros(0)
+        labels = []
+        embeds = torch.zeros(0)
+
+        for track in self.all_tracks:
+            img = Image.open(track.fpath).convert('RGB')
+            
+            lx = int(track.xyxy[0] * img.width)
+            ux = int(track.xyxy[2] * img.width)
+            ly = int(track.xyxy[3] * img.height)
+            uy = int(track.xyxy[1] * img.height)
+            img_crop = img.crop((lx, uy, ux, ly))
+
+            img_crop = torch.unsqueeze(transform(img_crop), 0)
+           
+            embed = torch.unsqueeze(torch.tensor(track.embed), 0)
+            imgs = torch.cat((imgs, img_crop), 0)
+            labels.append("{}_{:04d}_{:03d}".format(self.current_video, track.t, track.track_id))
+            embeds = torch.cat((embeds, embed), 0)
+
+            if(track.embed_tracked is not None):
+                embed_tracked = torch.unsqueeze(torch.tensor(track.embed_tracked), 0)
+                imgs = torch.cat((imgs, img_crop), 0)
+                labels.append("{}_{:04d}_{:03d}_tracked".format(self.current_video, track.t, track.track_id))
+                embeds = torch.cat((embeds, embed_tracked), 0)
+
+
+        self.tb_writer.add_embedding(embeds,  \
+                                    metadata=labels, \
+                                    label_img=imgs,  \
+                                    tag=self.current_video)     
+        tqdm.write('Done exporting embeddings for'+ str(self.current_video))
+        
 
     def compute_dist(self, embeds, embed):
         src = embed.unsqueeze(0)
@@ -394,34 +486,21 @@ class TrackHelperTransformer(object):
                 framestamp = torch.tensor(tracker.fstamps_queue)
                 framestamp = torch.unsqueeze(framestamp, 1)
                 embeds_ = torch.tensor(tracker.embeds_queue)
-                #print('embeds', embeds.size())
                 embeds = torch.unsqueeze(embeds_, 1)
-                #print('-'*100)
-                #print('framestamp', framestamp.size())
-                #print('embeds', embeds.size())
                 embed_to_track = self.model(framestamp=framestamp, embeds=embeds, current_frame=current_frame, infer_transformer_only=True)
                 tracker.update_embed_to_track(embed_to_track.cpu().squeeze().numpy())
-                #print('embed_to_track', tracker.embed_to_track.shape)
 
-                if(False):
-                    print('embeds', tracker.embeds_queue)
-                    print('embed_to_track', tracker.embed_to_track)
-                    print('latest embed', tracker.embed)
-                    self.first += 1
-                    print('diff', np.mean(tracker.embed - tracker.embed_to_track))
-                    #print(embeds.size())
-                    #print(torch.tensor([tracker.embed_to_track, tracker.embed_to_track, tracker.embed_to_track]).size())
-                    print(cdist(embeds_, torch.tensor([tracker.embed_to_track, tracker.embed_to_track, tracker.embed_to_track]), "euclidean" if not self.cosine else 'cosine'))
-                    #print('='*100)
 
-    def tracking(self, subfolder, frameCount, embeds, masks):
+    def tracking(self, subfolder, frameCount, embeds, masks, xyxys, filepath):
         self.current_video = subfolder if self.current_video == None else self.current_video
         self.next_inst_id = 1 if self.next_inst_id == None else self.next_inst_id
         if not subfolder == self.current_video:
             # a new video
+            if export_emb:
+                self.export_embeddings()
             self.export_last_video()
             self.reset(subfolder)
-
+            
         self.update_active_track(frameCount)
 
         # traverse insts
@@ -433,7 +512,9 @@ class TrackHelperTransformer(object):
             for i in range(n):
                 embed = embeds[i]
                 mask = masks[i]
-                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl)
+                xyxy = xyxys[i]
+                fpath = filepath
+                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl, xyxy=xyxy, fpath=fpath)
                 active_inst = TrackIdElement(frameCount, self.next_inst_id, embed=embed, mask=mask, class_id=self.class_id, ttl=self.init_ttl)
                 self.all_tracks.append(current_inst)
                 self.active_tracks.append(active_inst)
@@ -452,17 +533,8 @@ class TrackHelperTransformer(object):
         # compare inst by inst.
         # only compare with previous embeds, not including embeds of this frame
         if self.use_ttl:
-            #last_reids = np.concatenate([el.embed[np.newaxis] if(el.ttl>0) else el.embed_center[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
-            reids_emb = []
-            for el in self.active_tracks:
-                if el.ttl > 0:
-                    reids_emb.append(el.embed[np.newaxis])
-                else:
-                    reids_emb.append(el.embed_center[np.newaxis])
-                    #tqdm.write('using center with diff:'+ str(cdist(el.embed[np.newaxis], el.embed_center[np.newaxis], "euclidean" if not self.cosine else 'cosine')[0]))
-            last_reids = np.concatenate(reids_emb, axis=0)
+            last_reids = np.concatenate([el.embed[np.newaxis] if(el.ttl>0) else el.embed_center[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
         else:
-            #last_reids = np.concatenate([el.embed[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
             last_reids = np.concatenate([el.embed_to_track[np.newaxis] for el in self.active_tracks], axis=0) # ids for matching(active)
         curr_reids = embeds
         asso_sim = np.zeros((n, len(self.active_tracks)))
@@ -490,12 +562,15 @@ class TrackHelperTransformer(object):
                 continue
             embed = embeds[row]
             mask = masks[row]
+            xyxy = xyxys[row]
+            fpath = filepath
             current_inst = newElem(frameCount, self.active_tracks[column].track_id, embed, mask,  ttl=self.init_ttl, \
-                        class_id=self.class_id, embed_centered=self.active_tracks[column].embed_center, n_tracks=self.active_tracks[column].n_tracks+1) # @vtsai01
+                                    class_id=self.class_id, embed_tracked=self.active_tracks[column].embed_to_track, \
+                                    embed_centered=self.active_tracks[column].embed_center, \
+                                    n_tracks=self.active_tracks[column].n_tracks+1, \
+                                    xyxy=xyxy, fpath=fpath) # @vtsai01
             self.active_tracks[column].update(frameCount, embed=embed, mask=mask)
             self.all_tracks.append(current_inst)
-            #self.active_tracks[column] = current_inst
-            #self.active_track_ttl[column] = 3 # 3 frames to live @vtsai01 
             detections_assigned[row] = True
 
         # new instance for unassigned
@@ -504,7 +579,9 @@ class TrackHelperTransformer(object):
             for i in detections_assigned_Inds:
                 embed = embeds[i]
                 mask = masks[i]
-                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl)
+                xyxy = xyxys[i]
+                fpath = filepath
+                current_inst = newElem(frameCount, self.next_inst_id, embed, mask, class_id=self.class_id, ttl=self.init_ttl, xyxy=xyxy, fpath=fpath)
                 active_inst =  TrackIdElement(frameCount, self.next_inst_id, embed=embed, mask=mask, class_id=self.class_id, ttl=self.init_ttl)
                 self.all_tracks.append(current_inst)
                 self.active_tracks.append(active_inst)
