@@ -14,9 +14,10 @@ from utils.mots_util import *
 from config import *
 import subprocess
 from torch.utils.tensorboard import SummaryWriter # visualization vtsai01
+import datetime;
 
-# default `log_dir` is "runs" - we'll be more specific here
-writer = SummaryWriter('runs/pointtrack_test') # visualization vtsai01
+ts = datetime.datetime.now().strftime("%m%d-%H%M")
+
 
 # torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.deterministic = True
@@ -30,6 +31,11 @@ if torch.cuda.is_available():
 config_name = sys.argv[1]
 args = eval(config_name).get_args()
 max_disparity = args['max_disparity']
+
+
+# default `log_dir` is "runs" - we'll be more specific here
+dataset_ = args['dataset']['name']
+writer = SummaryWriter(f'runs/{dataset_}-{ts}') # visualization vtsai01
 
 if args['display']:
     plt.ion()
@@ -100,16 +106,17 @@ dColors = [(128, 0, 0), (170, 110, 40), (128, 128, 0), (0, 128, 128), (0, 0, 128
 print('args[\'save_dir\']', args['save_dir'])
 
 use_transformer = True if 'transformer' in args['model']['name'] else False
+export_emb = False # visualization vtsai01
 
 if use_transformer:
     trackHelper = TrackHelperTransformer(model, args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
-                          mask_iou=False, use_ttl=False, ttl=2)
+                          mask_iou=True, use_ttl=False, ttl=2, export_emb=export_emb, tb_writer=writer)
 else:
     trackHelper = TrackHelper(args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
-                          mask_iou=True, use_ttl=False, ttl=2) # use_ttl is optional @vtsai01
+                          mask_iou=True, use_ttl=False, ttl=2, export_emb=export_emb, tb_writer=writer) # use_ttl is optional @vtsai01
 print("+"*10)
 
-export_emb = False # visualization vtsai01
+
 
 with torch.no_grad():
     print(len(dataset_it))
@@ -117,29 +124,26 @@ with torch.no_grad():
     for sample in tqdm(dataset_it):
         subf, frameCount = sample['name'][0][:-4].split('/')[-2:] # subf: folder; frameCount: NO. of frame
         frameCount = int(float(frameCount))
-
+        filepath = sample['name'][0]
         # MOTS forward with tracking
         points = sample['points']
         if len(points) < 1:
             embeds = np.array([])
             masks = np.array([])
+            xyxys_np = np.array([])
         else:
             masks = sample['masks'][0]
             xyxys = sample['xyxys']
             embeds_t = model(points, None, xyxys, infer=True)
             embeds = embeds_t.cpu().numpy()
             masks = masks.numpy()
-        if export_emb: # visualization vtsai01
-            imgs = plt.imread(sample['name'][0])
-            imgs = imgs.reshape((3, imgs.shape[0],imgs.shape[1]))
-            imgs = torch.from_numpy(imgs[np.newaxis, :])
-
-            writer.add_embedding(embeds_t.cpu().view(1, -1),  \
-                   metadata=np.zeros((1, 1)), \
-                    label_img=imgs) 
-
+            xyxys_np = sample['xyxys'][0].numpy()
+      
         # do tracking
-        trackHelper.tracking(subf, frameCount, embeds, masks)
+        trackHelper.tracking(subf, frameCount, embeds, masks, xyxys_np, filepath)
+    
+    if export_emb:
+        trackHelper.export_embeddings()
     writer.close()
     trackHelper.export_last_video()
 
