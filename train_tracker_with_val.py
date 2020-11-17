@@ -22,13 +22,16 @@ import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
 
-# Writer will output to ./runs/ directory by default
-writer = SummaryWriter()
+
 
 torch.backends.cudnn.benchmark = True
 config_name = sys.argv[1]
 
 args = eval(config_name).get_args()
+
+# Writer will output to ./runs/ directory by default
+writer = SummaryWriter(comment = args['save_dir'])
+
 if 'cudnn' in args.keys():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -69,9 +72,10 @@ model.to(f'cuda:{model.device_ids[0]}')
 #model = torch.nn.DataParallel(model).to(device)
 
 # set optimizer
-optimizer = torch.optim.Adam(
+#optimizer = torch.optim.Adam(
+#    model.parameters(), lr=args['lr'], weight_decay=1e-4)
+optimizer = torch.optim.SGD(
     model.parameters(), lr=args['lr'], weight_decay=1e-4)
-
 
 def lambda_(epoch):
     return pow((1 - ((epoch) / args['n_epochs'])), 0.9)
@@ -224,26 +228,9 @@ for epoch in range(start_epoch, args['n_epochs']):
     logger.add('train', train_loss)
     writer.add_scalar('Loss/train', train_loss, epoch)
 
-    """
-    if train_loss < best_train_loss:
-        best_train_loss = train_loss 
-        if args['save']:
-            state = {
-                'epoch': epoch,
-                'best_iou': best_iou,
-                'best_seed': best_seed,
-                'model_state_dict': model.state_dict(),
-                'optim_state_dict': optimizer.state_dict(),
-                'logger_data': logger.data,
-                'scheduler': scheduler
-            }
-            for param_group in optimizer.param_groups:
-                lrC = str(param_group['lr'])
-        save_checkpoint(state, True, str(best_train_loss) + '_' + lrC, is_lowest=False)
-    """
     
 
-    if 'val_interval' not in args.keys() or epoch % args['val_interval'] == 0:
+    if 'val_interval' not in args.keys() or epoch % args['val_interval'] == 0 or epoch == 1:
         val_loss, val_iou = val(epoch)
         print('===> val loss: {:.4f}, val iou: {:.4f}'.format(val_loss, val_iou))
         logger.add('val', val_loss)

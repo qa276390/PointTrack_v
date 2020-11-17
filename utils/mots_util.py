@@ -177,7 +177,7 @@ class TrackHelper(object):
         labels = []
         embeds = torch.zeros(0)
 
-        for track in self.all_tracks:
+        for track in tqdm(self.all_tracks):
             img = Image.open(track.fpath).convert('RGB')
             
             lx = int(track.xyxy[0] * img.width)
@@ -192,13 +192,13 @@ class TrackHelper(object):
             imgs = torch.cat((imgs, img_crop), 0)
             labels.append("{}_{:04d}_{:03d}".format(self.current_video, track.t, track.track_id))
             embeds = torch.cat((embeds, embed), 0)
-
+            """
             if(track.embed_tracked is not None):
                 embed_tracked = torch.unsqueeze(torch.tensor(track.embed_tracked), 0)
                 imgs = torch.cat((imgs, img_crop), 0)
                 labels.append("{}_{:04d}_{:03d}_tracked".format(self.current_video, track.t, track.track_id))
                 embeds = torch.cat((embeds, embed_tracked), 0)
-
+            """
 
         self.tb_writer.add_embedding(embeds,  \
                                     metadata=labels, \
@@ -372,6 +372,7 @@ class TrackHelperTransformer(object):
 
     def __init__(self, model, save_dir, margin, t_car=0.8165986526897969, t_person=0.47985540892434836, alive_car=5, alive_person=30, car=True,
                  mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False, use_ttl=False, ttl=4, export_emb=False, tb_writer=None):
+        print('initiating Transformer Track Helper...')
         # mask_iou_scale_car 0.7~0.8
         # t_car 0.7~1.0 or 6.0
         self.margin = margin
@@ -436,7 +437,7 @@ class TrackHelperTransformer(object):
         labels = []
         embeds = torch.zeros(0)
 
-        for track in self.all_tracks:
+        for track in tqdm(self.all_tracks):
             img = Image.open(track.fpath).convert('RGB')
             
             lx = int(track.xyxy[0] * img.width)
@@ -463,7 +464,7 @@ class TrackHelperTransformer(object):
                                     metadata=labels, \
                                     label_img=imgs,  \
                                     tag=self.current_video)     
-        tqdm.write('Done exporting embeddings for'+ str(self.current_video))
+        tqdm.write('Done exporting embeddings for '+ str(self.current_video))
         
 
     def compute_dist(self, embeds, embed):
@@ -496,7 +497,7 @@ class TrackHelperTransformer(object):
         self.next_inst_id = 1 if self.next_inst_id == None else self.next_inst_id
         if not subfolder == self.current_video:
             # a new video
-            if export_emb:
+            if self.export_emb:
                 self.export_embeddings()
             self.export_last_video()
             self.reset(subfolder)

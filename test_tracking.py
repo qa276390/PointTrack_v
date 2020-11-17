@@ -35,7 +35,7 @@ max_disparity = args['max_disparity']
 
 # default `log_dir` is "runs" - we'll be more specific here
 dataset_ = args['dataset']['name']
-writer = SummaryWriter(f'runs/{dataset_}-{ts}') # visualization vtsai01
+writer = SummaryWriter(f'runs/{config_name}-{ts}') # visualization vtsai01
 
 if args['display']:
     plt.ion()
@@ -106,14 +106,15 @@ dColors = [(128, 0, 0), (170, 110, 40), (128, 128, 0), (0, 128, 128), (0, 0, 128
 print('args[\'save_dir\']', args['save_dir'])
 
 use_transformer = True if 'transformer' in args['model']['name'] else False
-export_emb = False # visualization vtsai01
+export_emb =  False # visualization vtsai01
+mask_iou = False
 
 if use_transformer:
     trackHelper = TrackHelperTransformer(model, args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
-                          mask_iou=True, use_ttl=False, ttl=2, export_emb=export_emb, tb_writer=writer)
+                          mask_iou=mask_iou, use_ttl=False, ttl=2, export_emb=export_emb, tb_writer=writer)
 else:
     trackHelper = TrackHelper(args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
-                          mask_iou=True, use_ttl=False, ttl=2, export_emb=export_emb, tb_writer=writer) # use_ttl is optional @vtsai01
+                          mask_iou=mask_iou, use_ttl=False, ttl=2, export_emb=export_emb, tb_writer=writer) # use_ttl is optional @vtsai01
 print("+"*10)
 
 

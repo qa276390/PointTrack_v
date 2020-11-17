@@ -282,7 +282,7 @@ using PointTrack output(point_feat) to train a Transformer to generate a embeddi
 """
 class TransformerTrackerEmb(nn.Module):
     # for uv offset and category
-    def __init__(self, margin=0.3, num_points=250, border_ic=6, env_points=200, category=False, outputD=64, v23=False):
+    def __init__(self, margin=0.3, num_points=250, border_ic=6, env_points=200, category=False, outputD=64, v23=False, alpha=0.5):
         super().__init__()
         torch.autograd.set_detect_anomaly(True)
         print('TransformerTrackerEmb')
@@ -295,6 +295,7 @@ class TransformerTrackerEmb(nn.Module):
         self.embedding = LocationEmbedding
         self.tranformer_model = TransformerModel(outputD, 2, 200, 2, posenc_max_len=5000)
         self.outputD = outputD
+        self.alpha = alpha
     def init_output(self, n_sigma=1):
         pass
 
@@ -353,25 +354,21 @@ class TransformerTrackerEmb(nn.Module):
                 embeds = self.point_feat(points.transpose(2, 1).contiguous(), envs.transpose(2, 1).contiguous(), xy_embeds)
                 labels = labels[0]
                 triplet_losses = self.compute_triplet_loss(embeds, labels)
-                #print('embeds', embeds.size()) # ([72, 32]): (n_sample*3, embed_dim)
-                #print('framestamp', framestamp)
+                
                 #print('labels', labels)
-                #####################
-                # append the embeds #
-                #####################
-                # if
-                # emb: (72, 32) 
-                #   -> (96, 32)
-                #   => (4, 24, 32)
-                # then
-                # src: (3, 24, 32)
-                # tgt: (1, 24, 32)
-                ##################### 
-                embeds_re = torch.reshape(embeds, (-1, 4, self.outputD)).permute(1, 0, 2)
+                #print('labels', labels.size()) # (96)
+                #print('embeds', embeds.size()) # (96, 32)
+                #print('framestamp', framestamp)
+
+                embeds_re = torch.reshape(embeds, (-1, 4, self.outputD)).permute(1, 0, 2) # proved to be correct
                 labels_re = torch.reshape(labels, (-1, 4)).permute(1, 0)
                 fstamp_re = torch.reshape(framestamp, (-1, 4)).permute(1, 0)
+                
+                #print('labels_re', labels_re.size()) # (4 ,24)
+                #print('embeds_re', embeds_re.size()) # (4, 24, 32)                
+                #print('---'*30)
+                #print('fstamp_re', fstamp_re)
 
-                #print('---'*30)s
                 fstamp_src = fstamp_re[:3, :]
                 fstamp_tgt = fstamp_re[-1, :]
                 
@@ -381,32 +378,29 @@ class TransformerTrackerEmb(nn.Module):
                 src_labels = labels_re[-2, :]
                 tgt_labels = labels_re[-1, :] # src_labels and tgt_labels suppose should be the same
 
-                #print('labels', labels)
-                #print('fstamp', fstamp_src)
                 inds = fstamp_tgt - fstamp_src
-                #print('inds',inds.size(),  inds)
-                ###########################################################################################################
-                #    For transformer,
-                #    src:(S, N, E), tgt:(T, N, E) where S and T are seq length, N is batch size, E is feature number
-                #    In this case dim should be src:(10, N, 64) which is  (frames, n_samples, feature_dims)
-                ###########################################################################################################
 
                 output = self.tranformer_model(src, inds)  # we have to bulid a customize transformer because of the poisition encoding.
-                #print('transformer_output SIZE', output.size())
-                #print('tgt', tgt.size())
-                #print('output', output[-1, :].size())
-                #y = torch.ones(tgt.size(0)).cuda() # loss decrease when dist smaller
-                #transformer_losses = self.cos_emb_loss(output[-1, :], tgt, y).unsqueeze(0)
-                #dist = torch.dist(output[-1, :], tgt, p=2)
-                #transformer_losses = self.hinge_loss(dist, y).unsqueeze(0)
+        
 
                 src_out = output[-1, :]
+                
+                #print('src_out', src_out.size()) 
+                #print('tgt', tgt.size()) 
 
+            
+                
                 src_and_tgt = torch.cat([src_out, tgt])
                 labels = torch.cat([src_labels, tgt_labels])
-                
+                assert torch.all(torch.eq(src_labels, tgt_labels)), 'source and target label somehow inequvalent'
+
+                #print('src_and_tgt', src_and_tgt.size())
+                #print('labels', labels)
+                #print('---'*30)
+
                 transformer_losses = self.compute_triplet_loss(src_and_tgt, labels)
             
+                #return ((self.alpha) * triplet_losses + (1 - self.alpha) * transformer_losses) * 2
                 return triplet_losses + transformer_losses
 
     def inference(self, points, envs, embeds):
@@ -416,13 +410,14 @@ class TransformerTrackerEmb(nn.Module):
 
 class TransformerModel(nn.Module):
 
+
     def __init__(self, emb_dim, nhead, nhid, nlayers, posenc_max_len=5000,  dropout=0.5):
         super(TransformerModel, self).__init__()
         from torch.nn import TransformerEncoder, TransformerEncoderLayer
         self.model_type = 'Transformer'
         self.pos_encoder = PositionalEncoding(emb_dim, dropout, posenc_max_len)
         encoder_layers = TransformerEncoderLayer(emb_dim, nhead, nhid, dropout)
-        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers) # src: (S, N, E), tgt: (T, N, E)
 
         self.encoder = nn.Linear(emb_dim, emb_dim)
         self.decoder = nn.Linear(emb_dim, emb_dim)

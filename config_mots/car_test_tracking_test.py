@@ -17,7 +17,8 @@ args = dict(
     display=False,
 
     save=True,
-    save_dir='./outputs/tracks_car_pointtrack_test_transformer/',
+    #save_dir='./outputs/tracks_car_pointtrack_test_transformer/',
+    save_dir='./outputs/tracking/tracks_car_pointtrack_test',
     #checkpoint_path='./car_finetune_tracking/checkpoint.pth',
     checkpoint_path='./weights/car_finetune_tracking_transformer_with_triplet/checkpoint.pth',
     #checkpoint_path='./weights/car_finetune_tracking_transformer_with_triplet/ best_iou_model.pth85.26_0.0002', 
@@ -40,6 +41,7 @@ args = dict(
     },
 
     model={
+        #'name': 'tracker_offset_emb',
         'name': 'tracker_offset_emb_transformer',
         'kwargs': {
             'num_points': 1000,

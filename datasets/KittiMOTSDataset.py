@@ -606,7 +606,8 @@ class MOTSTrackCarsTrainTransformer(Dataset):
             inst_length = len(pi)
             #if inst_length > 3:
             t1 = random.choice(range(1, inst_length - 1))
-            nearby = random.choice(range(1, self.nearby+1))
+            #nearby = random.choice(range(1, self.nearby+1))
+            nearby = self.nearby
             t0, t2, t3 = max(0, t1 - nearby), min(inst_length - 1, t1 + nearby), min(inst_length - 1, t1 + nearby + 1)
             pis = [pi[t0], pi[t1], pi[t2], pi[t3]]
             #else:
