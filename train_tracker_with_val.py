@@ -72,10 +72,10 @@ model.to(f'cuda:{model.device_ids[0]}')
 #model = torch.nn.DataParallel(model).to(device)
 
 # set optimizer
-#optimizer = torch.optim.Adam(
-#    model.parameters(), lr=args['lr'], weight_decay=1e-4)
-optimizer = torch.optim.SGD(
+optimizer = torch.optim.Adam(
     model.parameters(), lr=args['lr'], weight_decay=1e-4)
+#optimizer = torch.optim.SGD(
+#    model.parameters(), lr=args['lr'], weight_decay=1e-4)
 
 def lambda_(epoch):
     return pow((1 - ((epoch) / args['n_epochs'])), 0.9)

@@ -18,10 +18,10 @@ args = dict(
     display_it=5,
 
     save=True,
-    save_dir='./weights/car_finetune_tracking_transformer_nearby',
+    save_dir='./weights/car_finetune_tracking_transformer_freeze',
     eval_config='car_test_tracking_val',
-    #resume_path='./weights/car_finetune_tracking/checkpoint.pth',
-    resume_path='./weights/car_finetune_tracking_transformer_with_triplet/checkpoint.pth',
+    resume_path='./weights/car_finetune_tracking/checkpoint.pth',
+    #resume_path='./weights/car_finetune_tracking_transformer_with_triplet/checkpoint.pth',
 
     train_dataset = {
         'name': 'mots_track_cars_train_transformer',
@@ -48,7 +48,8 @@ args = dict(
             'border_ic': 3,
             'env_points': 500,
             'outputD': 32,
-            'category': True
+            'category': True, 
+            'freeze': True # freeze feature extractor
         }
     },
 

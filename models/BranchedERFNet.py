@@ -282,7 +282,7 @@ using PointTrack output(point_feat) to train a Transformer to generate a embeddi
 """
 class TransformerTrackerEmb(nn.Module):
     # for uv offset and category
-    def __init__(self, margin=0.3, num_points=250, border_ic=6, env_points=200, category=False, outputD=64, v23=False, alpha=0.5):
+    def __init__(self, margin=0.3, num_points=250, border_ic=6, env_points=200, category=False, outputD=64, v23=False, alpha=0.5, freeze=False):
         super().__init__()
         torch.autograd.set_detect_anomaly(True)
         print('TransformerTrackerEmb')
@@ -296,6 +296,11 @@ class TransformerTrackerEmb(nn.Module):
         self.tranformer_model = TransformerModel(outputD, 2, 200, 2, posenc_max_len=5000)
         self.outputD = outputD
         self.alpha = alpha
+        self.freeze = freeze
+        if(self.freeze):
+            for param in self.point_feat.parameters():
+                param.requires_grad = False
+                
     def init_output(self, n_sigma=1):
         pass
 
