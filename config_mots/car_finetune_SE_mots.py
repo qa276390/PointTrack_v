@@ -42,7 +42,7 @@ args = dict(
                     'name': 'ToTensor',
                     'opts': {
                         'keys': ('image', 'instance','label'),
-                        'mode': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
+                        'type': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
                     }
                 },
             ]),
@@ -71,7 +71,7 @@ args = dict(
                     'name': 'ToTensor',
                     'opts': {
                         'keys': ('image', 'instance', 'label'),
-                        'mode': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
+                        'type': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
                     }
                 },
             ]),

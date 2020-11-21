@@ -13,6 +13,14 @@ results/
 data/
 outputs/
 
+car_finetune_tracking_transformer/
+car_SE_test_prediction/
+car_SE_trainset_prediction/
+car_SE_test_prediction/
+tracks_car_pointtrack_test/
+tracks_car_pointtrack_val/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

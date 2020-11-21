@@ -72,10 +72,11 @@ model.to(f'cuda:{model.device_ids[0]}')
 #model = torch.nn.DataParallel(model).to(device)
 
 # set optimizer
-optimizer = torch.optim.Adam(
+optimizer_1 = torch.optim.Adam(
     model.parameters(), lr=args['lr'], weight_decay=1e-4)
-#optimizer = torch.optim.SGD(
-#    model.parameters(), lr=args['lr'], weight_decay=1e-4)
+optimizer_2 = torch.optim.SGD(
+    model.parameters(), lr=args['lr'], weight_decay=1e-4)
+optimizer = optimizer_1
 
 def lambda_(epoch):
     return pow((1 - ((epoch) / args['n_epochs'])), 0.9)
@@ -140,6 +141,11 @@ def train(epoch):
     # put model into training mode
     model.train()
 
+    if epoch > args['epoch_to_SGD']:
+        optimizer = optimizer_2
+    else: 
+        optimizer = optimizer_1
+
     for param_group in optimizer.param_groups:
         print('learning rate: {}'.format(param_group['lr']))
 
@@ -201,7 +207,7 @@ def save_checkpoint(state, is_best, iou_str, is_lowest=False, name='checkpoint.p
     if 'save_name' in args.keys():
         file_name = os.path.join(args['save_dir'], args['save_name'])
     else:
-        file_name = os.path.join(args['save_dir'], name)
+        file_name = os.path.join(args['save_dir'], f"{name}.pth")
     torch.save(state, file_name)
     if is_best:
         shutil.copyfile(file_name, os.path.join(

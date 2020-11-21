@@ -370,7 +370,7 @@ class TrackIdElement(object):
 
 class TrackHelperTransformer(object):
 
-    def __init__(self, model, save_dir, margin, t_car=0.8165986526897969, t_person=0.47985540892434836, alive_car=5, alive_person=30, car=True,
+    def __init__(self, model, save_dir, margin, asso_thr = None, t_car=0.8165986526897969, t_person=0.47985540892434836, alive_car=5, alive_person=30, car=True,
                  mask_iou=False, mask_iou_scale_person=0.54, mask_iou_scale_car=0.74, cosine=False, use_ttl=False, ttl=4, export_emb=False, tb_writer=None):
         print('initiating Transformer Track Helper...')
         # mask_iou_scale_car 0.7~0.8
@@ -391,8 +391,8 @@ class TrackHelperTransformer(object):
         self.tb_writer = tb_writer
         self.export_emb = export_emb
         if car:
-            self.reid_euclidean_scale = 1.0090931467228708
-            self.reid_euclidean_offset = 8.810218833503743
+            self.reid_euclidean_scale = 1 #1.0090931467228708
+            self.reid_euclidean_offset = 3 #8.810218833503743
             self.association_threshold = t_car
             self.keep_alive = alive_car
             self.class_id=1
@@ -407,6 +407,8 @@ class TrackHelperTransformer(object):
         
         if(not self.mask_iou):
             self.association_threshold = self.association_threshold / (self.reid_euclidean_scale + self.mask_iou_scale)
+        if(asso_thr is not None):
+            self.association_threshold = asso_thr
         print('params:', 'car' if car else 'pedestrian', self.keep_alive, self.association_threshold,\
             'mask_iou: %s' % self.mask_iou_scale if self.mask_iou else 'no mask iou', \
             'init_ttl: %s' % self.init_ttl if self.use_ttl else 'not using ttl' )
@@ -543,8 +545,20 @@ class TrackHelperTransformer(object):
         detections_assigned = np.zeros(len(embeds)).astype(np.bool)
 
         reid_dists = cdist(curr_reids, last_reids, "euclidean" if not self.cosine else 'cosine')
+        """
+        print('='*100)
+        print('dist')
+        print(reid_dists.max())
+        print(reid_dists.min())
+        print(reid_dists.mean())
+        """
         asso_sim += self.reid_euclidean_scale * (self.reid_euclidean_offset - reid_dists)
-
+        """
+        print('sim')
+        print(asso_sim.max())
+        print(asso_sim.min())
+        print(asso_sim.mean())
+        """
         if self.mask_iou:
             # consider add mask iou
             masks_t = [maskUtils.encode(np.asfortranarray(v.astype(np.uint8))) for v in masks]
@@ -554,6 +568,7 @@ class TrackHelperTransformer(object):
 
         cost_matrix = munkres.make_cost_matrix(asso_sim) # Hungarian Algorithm
         disallow_indices = np.argwhere(asso_sim <= self.association_threshold)
+        
         for ind in disallow_indices:
             cost_matrix[ind[0]][ind[1]] = 1e9
         indexes = munkres_obj.compute(cost_matrix) # Hungarian Algorithm

@@ -17,20 +17,17 @@ args = dict(
     display=False,
 
     save=True,
-    #save_dir='./outputs/tracking/tracks_car_pointtrack_val_transformer_weighed_loss/',
-    save_dir='./outputs/tracking/tracks_car_pointtrack_val',
-    #checkpoint_path='./weights/car_finetune_tracking/checkpoint.pth',
-    #checkpoint_path='./weights/car_finetune_tracking_transformer_freeze/checkpoint.pth',
-    #checkpoint_path='./weights/car_finetune_tracking_transformer_with_triplet/best_iou_model.pth85.26_0.0002',
+    save_dir='./outputs/tracking/tracks_car_pointtrack_trainset_transformer_freeze',
     checkpoint_path='./weights/car_finetune_tracking_transformer_freeze/best_iou_model.pth85.33_0.0002',
     #run_eval=False,
     run_eval=True,
 
-    dataset= {
+
+ dataset= {
         'name': 'mots_track_val_env_offset',
         'kwargs': {
             'root_dir': kittiRoot,
-            'mode': 'val',
+            'mode': 'train',
             'num_points': 1500,
             'box': True,
             'gt': False,
@@ -40,6 +37,8 @@ args = dict(
         'batch_size': 1,
         'workers': 32
     },
+
+
 
     model={
         #'name': 'tracker_offset_emb',

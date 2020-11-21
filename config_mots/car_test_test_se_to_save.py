@@ -55,7 +55,7 @@ args = dict(
                         #'keys': ('mot_image', 'mot_instance','mot_label'),
                         #'mode': (torch.FloatTensor, torch.LongTensor, torch.ByteTensor),
                         'keys': ('mot_image',),
-                        'mode': (torch.FloatTensor),
+                        'type': (torch.FloatTensor),
                     }
                 },
             ]),

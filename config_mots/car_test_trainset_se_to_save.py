@@ -31,13 +31,13 @@ args = dict(
         }
     },
 
-    save_dir='./car_SE_val_prediction/',
+    save_dir='./car_SE_trainset_prediction/',
     dataset= {
         'name': 'mots_cars_val',
         'kwargs': {
             'root_dir': kittiRoot,
-            # 'mode': 'train',
-            'mode': 'val',
+            'mode': 'train',
+            #'mode': 'val',
             # 'size': 1000,
             'transform': my_transforms.get_transform([
                 {

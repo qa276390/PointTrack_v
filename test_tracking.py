@@ -106,11 +106,12 @@ dColors = [(128, 0, 0), (170, 110, 40), (128, 128, 0), (0, 128, 128), (0, 0, 128
 print('args[\'save_dir\']', args['save_dir'])
 
 use_transformer = True if 'transformer' in args['model']['name'] else False
-export_emb =  False # visualization vtsai01
+export_emb =  True # visualization vtsai01
 mask_iou = False
+asso_thr = 0.3
 
 if use_transformer:
-    trackHelper = TrackHelperTransformer(model, args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
+    trackHelper = TrackHelperTransformer(model, args['save_dir'], model.module.margin, asso_thr=asso_thr,alive_car=30, car=args['car'] if 'car' in args.keys() else True,
                           mask_iou=mask_iou, use_ttl=False, ttl=2, export_emb=export_emb, tb_writer=writer)
 else:
     trackHelper = TrackHelper(args['save_dir'], model.module.margin, alive_car=30, car=args['car'] if 'car' in args.keys() else True,
