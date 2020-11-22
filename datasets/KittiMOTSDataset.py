@@ -28,7 +28,7 @@ class MOTSTest(Dataset):
 
     def __init__(self, root_dir='./', mode="train", class_id=26, size=None, transform=None, batch=False, batch_num=8):
 
-        print('Kitti Dataset created')
+        print('Kitti Dataset  MOTSTest created')
         self.batch = batch
         self.batch_num = batch_num
 
@@ -82,7 +82,7 @@ class MOTSCarsVal(Dataset):
 
     def __init__(self, root_dir='./', mode="train", class_id=26, size=None, transform=None, batch=False, batch_num=8):
 
-        print('Kitti Dataset created')
+        print('Kitti Dataset MOTSCarsVal created')
         mode = 'training' if mode in 'training' else 'testing'
         self.mode = mode
         self.sequence = self.SEQ_IDS_TRAIN if mode == 'training' else self.SEQ_IDS_VAL
@@ -186,7 +186,7 @@ class MOTSTrackCarsValOffset(Dataset):
     def __init__(self, root_dir='./', mode="train", num_points=250, transform=None, random_select=False, az=False,
                  border=False, env=False, gt=True, box=False, test=False, category=False, ex=0.2):
 
-        print('MOTS Dataset created')
+        print('MOTS Dataset MOTSTrackCarsValOffset created')
         #mode = 'training' if mode in 'training' or mode in "validation" else 'testing'
         #self.mode = mode
         #assert self.mode == 'testing'
@@ -198,12 +198,14 @@ class MOTSTrackCarsValOffset(Dataset):
 
         
         if train:
+            print('Training Set')
             ids = self.SEQ_IDS_TRAIN
             timestamps = self.TIMESTEPS_PER_SEQ
             self.image_root = os.path.join(kittiRoot, 'training/image_02')
             self.mots_root = os.path.join(rootDir, 'car_SE_trainset_prediction') # modify by vtsai01
 
         elif val:
+            print('Validation Set')
             ids = self.SEQ_IDS_VAL
             timestamps = self.TIMESTEPS_PER_SEQ
             self.image_root = os.path.join(kittiRoot, 'training/image_02')

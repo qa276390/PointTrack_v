@@ -154,12 +154,12 @@ def train(epoch):
         xyxys = sample['xyxys']
         labels = sample['labels']
         fstamps = sample['framestamp']
-        emb_loss = model(points, labels, xyxys, fstamps)
+        emb_loss, transformer_loss = model(points, labels, xyxys, fstamps)
 
-        loss = emb_loss.mean()
+        loss = emb_loss + transformer_loss
         if loss.item() > 0:
             loss_emb_meter.update(emb_loss.mean().item())
-            loss_meter.update(loss.item())
+            loss_meter.update(transformer_loss.mean().item())
 
             optimizer.zero_grad()
             loss.backward()

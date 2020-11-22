@@ -1,6 +1,7 @@
 # Swap and Tmp
 *~
 tmp
+Test.ipynb
 
 # Models and Weight
 pointTrack_weights/
@@ -19,6 +20,7 @@ car_SE_trainset_prediction/
 car_SE_test_prediction/
 tracks_car_pointtrack_test/
 tracks_car_pointtrack_val/
+car_SE_val_prediction/
 
 
 # Byte-compiled / optimized / DLL files

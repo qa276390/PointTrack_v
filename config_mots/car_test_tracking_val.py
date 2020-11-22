@@ -18,11 +18,11 @@ args = dict(
 
     save=True,
     #save_dir='./outputs/tracking/tracks_car_pointtrack_val_transformer_weighed_loss/',
-    save_dir='./outputs/tracking/tracks_car_pointtrack_val',
+    save_dir='./outputs/tracking/tracks_car_pointtrack_val_residual',
     #checkpoint_path='./weights/car_finetune_tracking/checkpoint.pth',
-    #checkpoint_path='./weights/car_finetune_tracking_transformer_freeze/checkpoint.pth',
+    checkpoint_path='./weights/car_finetune_tracking_transformer_residual/checkpoint.pth',
     #checkpoint_path='./weights/car_finetune_tracking_transformer_with_triplet/best_iou_model.pth85.26_0.0002',
-    checkpoint_path='./weights/car_finetune_tracking_transformer_freeze/best_iou_model.pth85.33_0.0002',
+    #checkpoint_path='./weights/car_finetune_tracking_transformer_freeze/best_iou_model.pth85.33_0.0002',
     #run_eval=False,
     run_eval=True,
 
@@ -50,7 +50,8 @@ args = dict(
             'border_ic': 3,
             'env_points': 500,
             'outputD': 32,
-            'category': True
+            'category': True,
+            'residual': True # add by vtsai01
         }
     },
     max_disparity=192.0,

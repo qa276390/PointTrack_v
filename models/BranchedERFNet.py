@@ -282,7 +282,7 @@ using PointTrack output(point_feat) to train a Transformer to generate a embeddi
 """
 class TransformerTrackerEmb(nn.Module):
     # for uv offset and category
-    def __init__(self, margin=0.3, num_points=250, border_ic=6, env_points=200, category=False, outputD=64, v23=False, alpha=0.5, freeze=False):
+    def __init__(self, margin=0.3, num_points=250, border_ic=6, env_points=200, category=False, outputD=64, v23=False, alpha=0.5, freeze=False, residual=False):
         super().__init__()
         torch.autograd.set_detect_anomaly(True)
         print('TransformerTrackerEmb')
@@ -293,10 +293,11 @@ class TransformerTrackerEmb(nn.Module):
         #self.cos_emb_loss = nn.CosineEmbeddingLoss(margin=margin)
         self.hinge_loss = nn.HingeEmbeddingLoss(margin=margin)
         self.embedding = LocationEmbedding
-        self.tranformer_model = TransformerModel(outputD, 2, 200, 2, posenc_max_len=5000)
+        self.transformer_model = TransformerModel(outputD, 2, 200, 2, posenc_max_len=5000)
         self.outputD = outputD
         self.alpha = alpha
         self.freeze = freeze
+        self.residual = residual
         if(self.freeze):
             for param in self.point_feat.parameters():
                 param.requires_grad = False
@@ -340,8 +341,13 @@ class TransformerTrackerEmb(nn.Module):
             #print('f', framestamp)
             inds = current_frame - framestamp
             #print('inds', inds)
-            output = self.tranformer_model(embeds, inds)
-            return output[-1, :]
+            output = self.transformer_model(embeds, inds)
+
+            src_out = output[-1, :]
+            if self.residual:
+                src_out = embeds[-1, :] + src_out
+
+            return src_out
         else:
             if points is not None and xyxys is not None:
                 points, xyxys = points[0], xyxys[0]
@@ -358,6 +364,9 @@ class TransformerTrackerEmb(nn.Module):
             else:
                 embeds = self.point_feat(points.transpose(2, 1).contiguous(), envs.transpose(2, 1).contiguous(), xy_embeds)
                 labels = labels[0]
+                #if self.freeze:
+                #    triplet_losses = torch.tensor(0)
+                #else:
                 triplet_losses = self.compute_triplet_loss(embeds, labels)
                 
                 #print('labels', labels)
@@ -385,11 +394,13 @@ class TransformerTrackerEmb(nn.Module):
 
                 inds = fstamp_tgt - fstamp_src
 
-                output = self.tranformer_model(src, inds)  # we have to bulid a customize transformer because of the poisition encoding.
+                output = self.transformer_model(src, inds)  # we have to bulid a customize transformer because of the poisition encoding.
         
 
                 src_out = output[-1, :]
                 
+                if self.residual:
+                    src_out = src[-1, :] + src_out
                 #print('src_out', src_out.size()) 
                 #print('tgt', tgt.size()) 
 
@@ -406,7 +417,7 @@ class TransformerTrackerEmb(nn.Module):
                 transformer_losses = self.compute_triplet_loss(src_and_tgt, labels)
             
                 #return ((self.alpha) * triplet_losses + (1 - self.alpha) * transformer_losses) * 2
-                return triplet_losses + transformer_losses
+                return triplet_losses, transformer_losses
 
     def inference(self, points, envs, embeds):
         # assert points.shape[0] == 1

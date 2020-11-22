@@ -49,7 +49,8 @@ args = dict(
             'border_ic': 3,
             'env_points': 500,
             'outputD': 32,
-            'category': True
+            'category': True,
+            'residual': True # add by vtsai01
         }
     },
     max_disparity=192.0,
