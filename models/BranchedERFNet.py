@@ -364,10 +364,10 @@ class TransformerTrackerEmb(nn.Module):
             else:
                 embeds = self.point_feat(points.transpose(2, 1).contiguous(), envs.transpose(2, 1).contiguous(), xy_embeds)
                 labels = labels[0]
-                #if self.freeze:
-                #    triplet_losses = torch.tensor(0)
-                #else:
-                triplet_losses = self.compute_triplet_loss(embeds, labels)
+                if self.freeze:
+                    triplet_losses = torch.tensor(0).float()
+                else:
+                    triplet_losses = self.compute_triplet_loss(embeds, labels)
                 
                 #print('labels', labels)
                 #print('labels', labels.size()) # (96)
