@@ -18,7 +18,7 @@ args = dict(
     display_it=5,
 
     save=True,
-    save_dir='./weights/car_finetune_tracking_transformer_residual',
+    save_dir='./weights/car_finetune_tracking_transformer_residual_nearby_5',
     eval_config='car_test_tracking_val',
     resume_path='./weights/car_finetune_tracking/checkpoint.pth',
     #resume_path='./weights/car_finetune_tracking_transformer_with_triplet/checkpoint.pth',
@@ -33,7 +33,7 @@ args = dict(
             'num_points': 1500,
             'shift': True,
             'sample_num': 24,
-            'nearby': 1, # vtsai01
+            'nearby': 5, # vtsai01
             'category': True
         },
         'batch_size': 1,

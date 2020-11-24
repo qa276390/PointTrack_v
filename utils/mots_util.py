@@ -391,8 +391,8 @@ class TrackHelperTransformer(object):
         self.tb_writer = tb_writer
         self.export_emb = export_emb
         if car:
-            self.reid_euclidean_scale = 1 #1.0090931467228708
-            self.reid_euclidean_offset = 3 #8.810218833503743
+            self.reid_euclidean_scale = 1.0090931467228708
+            self.reid_euclidean_offset = 8.810218833503743
             self.association_threshold = t_car
             self.keep_alive = alive_car
             self.class_id=1
@@ -407,7 +407,7 @@ class TrackHelperTransformer(object):
         
         if(not self.mask_iou):
             self.association_threshold = self.association_threshold / (self.reid_euclidean_scale + self.mask_iou_scale)
-        if(asso_thr is not None):
+        if(not self.mask_iou and asso_thr is not None):
             self.association_threshold = asso_thr
         print('params:', 'car' if car else 'pedestrian', self.keep_alive, self.association_threshold,\
             'mask_iou: %s' % self.mask_iou_scale if self.mask_iou else 'no mask iou', \
@@ -575,6 +575,7 @@ class TrackHelperTransformer(object):
         for row, column in indexes:
             value = cost_matrix[row][column]
             if value == 1e9:
+                print('!')
                 continue
             embed = embeds[row]
             mask = masks[row]

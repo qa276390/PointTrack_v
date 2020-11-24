@@ -18,10 +18,10 @@ args = dict(
 
     save=True,
     #save_dir='./outputs/tracking/tracks_car_pointtrack_val_transformer_weighed_loss/',
-    save_dir='./outputs/tracking/tracks_car_pointtrack_val_residual',
+    save_dir='./outputs/tracking/tracks_car_pointtrack_val_residual_nearby_5',
     #checkpoint_path='./weights/car_finetune_tracking/checkpoint.pth',
-    #checkpoint_path='./weights/car_finetune_tracking_transformer_residual/checkpoint.pth',
-    checkpoint_path='./weights/car_finetune_tracking_transformer_residual/best_iou_model.pth85.47_0.002',
+    checkpoint_path='./weights/car_finetune_tracking_transformer_residual_nearby_5/best_iou_model.pth85.49_0.002',
+    #checkpoint_path='./weights/car_finetune_tracking_transformer_residual/best_iou_model.pth85.47_0.002',
     #checkpoint_path='./weights/car_finetune_tracking_transformer_with_triplet/best_iou_model.pth85.26_0.0002',
     #checkpoint_path='./weights/car_finetune_tracking_transformer_freeze/best_iou_model.pth85.33_0.0002',
     #run_eval=False,

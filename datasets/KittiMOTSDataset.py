@@ -176,7 +176,8 @@ class MOTSTrackCarsValOffset(Dataset):
     TIMESTEPS_PER_SEQ = {"0000": 154, "0001": 447, "0002": 233, "0003": 144, "0004": 314, "0005": 297, "0006": 270,
                          "0007": 800, "0008": 390, "0009": 803, "0010": 294, "0011": 373, "0012": 78, "0013": 340,
                          "0014": 106, "0015": 376, "0016": 209, "0017": 145, "0018": 339, "0019": 1059, "0020": 837}
-    SEQ_IDS_TEST = ["%04d" % idx for idx in range(29)]
+    #SEQ_IDS_TEST = ["%04d" % idx for idx in range(29)]
+    SEQ_IDS_TEST = ["%04d" % idx for idx in [10, 11, 12, 13, 15, 23, 27]]
     TIMESTEPS_PER_SEQ_TEST = {'0000': 465, '0015': 701, '0017': 305, '0003': 257, '0001': 147, '0018': 180, '0005': 809,
                               '0022': 436, '0021': 203, '0023': 430, '0012': 694, '0008': 165, '0009': 349, '0020': 173,
                               '0016': 510, '0013': 152, '0004': 421, '0028': 175, '0024': 316, '0019': 404, '0026': 170,
@@ -619,8 +620,10 @@ class MOTSTrackCarsTrainTransformer(Dataset):
             t1 = random.choice(range(1, inst_length - 1))
             #nearby = random.choice(range(1, self.nearby+1))
             nearby = self.nearby
-            t0, t2, t3 = max(0, t1 - nearby), min(inst_length - 1, t1 + nearby), min(inst_length - 1, t1 + nearby + 1)
+            t0, t2, t3 = max(0, t1 - 1), min(inst_length - 1, t1 + 1), min(inst_length - 1, t1 + 1 + nearby)
             pis = [pi[t0], pi[t1], pi[t2], pi[t3]]
+            #t0, t2, t3, t4, t5 = max(0, t1 - 1), min(inst_length - 1, t1 + 1), min(inst_length - 1, t1 + 2), min(inst_length - 1, t1 + 3), min(inst_length - 1, t1 + 3 + nearby)
+            #pis = [pi[t0], pi[t1], pi[t2], pi[t3], pi[t4], pi[t5]]
             #else:
             #    start, end = 0, 2
             #    pis = pi[start:end + 1]
